@@ -1,0 +1,13 @@
+{"id": "AAA-PRICE-2025-06-27", "ticker": "AAA", "source": "fake", "type": "price", "date": "2025-06-27", "text": "AAA closed at 120.50 PKR, up 1.2% on the day, volume 1.4M shares."}
+{"id": "AAA-ANN-2025-04-25", "ticker": "AAA", "source": "fake", "type": "announcement", "date": "2025-04-25", "text": "AAA board approved quarterly results: revenue up 8% year on year, interim cash dividend of 3.00 PKR per share."}
+{"id": "AAA-ANN-2025-06-30", "ticker": "AAA", "source": "fake", "type": "announcement", "date": "2025-06-30", "text": "AAA announced commissioning of a new production line, expected to raise capacity by 15%."}
+{"id": "AAA-ANN-2025-07-15", "ticker": "AAA", "source": "fake", "type": "announcement", "date": "2025-07-15", "text": "FUTURE ITEM: AAA reported a large one-off loss. Must never appear in a bundle as of 2025-06-30."}
+{"id": "BBB-PRICE-2025-06-27", "ticker": "BBB", "source": "fake", "type": "price", "date": "2025-06-27", "text": "BBB closed at 45.10 PKR, down 2.5% on the day, volume 3.2M shares."}
+{"id": "BBB-ANN-2025-05-10", "ticker": "BBB", "source": "fake", "type": "announcement", "date": "2025-05-10", "text": "BBB disclosed a delay in its plant expansion due to equipment import restrictions."}
+{"id": "BBB-FUND-2025-03-31", "ticker": "BBB", "source": "fake", "type": "fundamentals", "date": "2025-03-31", "text": "BBB quarterly fundamentals: EPS 1.10 PKR, debt to equity 1.8, gross margin 14%."}
+{"id": "CCC-ANN-2025-06-02", "ticker": "CCC", "source": "fake", "type": "announcement", "date": "2025-06-02", "text": "CCC entered a strategic partnership with a regional distributor to expand exports."}
+{"id": "CCC-PRICE-2025-06-27", "ticker": "CCC", "source": "fake", "type": "price", "date": "2025-06-27", "text": "CCC closed at 310.00 PKR, unchanged on the day, volume 0.2M shares."}
+{"id": "MACRO-POLICY-2025-05-05", "ticker": "MACRO", "source": "fake", "type": "policy_rate", "date": "2025-05-05", "text": "Central bank cut the policy rate by 100 basis points to 11.00%."}
+{"id": "MACRO-CPI-2025-06-02", "ticker": "MACRO", "source": "fake", "type": "inflation", "date": "2025-06-02", "text": "CPI inflation for May came in at 3.5% year on year."}
+{"id": "MACRO-FX-2025-06-27", "ticker": "MACRO", "source": "fake", "type": "exchange_rate", "date": "2025-06-27", "text": "PKR closed at 283.50 per USD in the interbank market."}
+{"id": "MACRO-POLICY-2025-07-20", "ticker": "MACRO", "source": "fake", "type": "policy_rate", "date": "2025-07-20", "text": "FUTURE ITEM: central bank raised the policy rate. Must never appear in a bundle as of 2025-06-30."}
