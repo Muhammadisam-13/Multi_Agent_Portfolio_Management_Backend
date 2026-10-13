@@ -111,6 +111,21 @@ def _header_cells(table) -> list[str]:
     return [" ".join(c.get_text(" ", strip=True).lower().split()) for c in first.find_all(["td", "th"])]
 
 
+def drop_repeated_postings(rows: Sequence[ResultRow]) -> tuple[list[ResultRow], list[ResultRow]]:
+    """Drop rows identical to an earlier row on the same day in every field except the time.
+
+    PSX sometimes posts the same filing twice a second apart; keeping both would count one
+    filing twice. The earliest posting is kept. Returns (kept, dropped).
+    """
+    seen, kept, dropped = set(), [], []
+    for row in sorted(rows, key=lambda r: (r.day, r.time)):
+        key = (row.company, row.day, row.period, row.dividend, row.profit_before_tax,
+               row.profit_after_tax, row.eps, row.agm, row.book_closure)
+        (dropped if key in seen else kept).append(row)
+        seen.add(key)
+    return kept, dropped
+
+
 # --- ticker names -------------------------------------------------------------
 
 def normalize_name(name: str) -> str:
@@ -257,10 +272,13 @@ class FinancialResultsFetcher:
         page, warning = load_page(NAMESPACE, URL, self.config, self.client, self.cache,
                                   validate=parse_results_page)
         rows, problems = parse_results_page(page.text)
+        rows, repeats = drop_repeated_postings(rows)
         items, unmatched = rows_to_items(rows, self.name_map, tickers)
 
         warnings = [warning] if warning else []
         warnings += problems
+        warnings += [f"dropped repeated posting: {r.company}, {r.day} {r.time} (identical to an earlier row)"
+                     for r in repeats if self.name_map.get(normalize_name(r.company)) in {t.upper() for t in tickers}]
         warnings.append(f"results table page fetched {page.fetched_utc.isoformat()}, "
                         f"{len(rows)} rows from {min(r.day for r in rows)} to {max(r.day for r in rows)}")
         found = {it.ticker for it in items}

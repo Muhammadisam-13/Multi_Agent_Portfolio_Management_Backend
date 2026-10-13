@@ -13,6 +13,7 @@ from mizan.fetcher.results_table import (
     FinancialResultsFetcher,
     load_name_map,
     normalize_name,
+    drop_repeated_postings,
     parse_results_page,
     rows_to_items,
 )
@@ -213,3 +214,19 @@ def test_redesigned_page_is_rejected_and_not_cached(tmp_path):
     with pytest.raises(StructureChangedError):
         make_fetcher(tmp_path, live=True, session=session).fetch(["ALPH"])
     assert PageCache(tmp_path).latest("financial_announcements") is None
+
+
+def test_repeated_posting_is_dropped_keeping_the_earliest():
+    rows, _ = parse_results_page(SAMPLE)
+    original = rows[0]
+    repeat = original.__class__(**{**original.__dict__, "time": "12:52:43"})   # same filing one second later
+    kept, dropped = drop_repeated_postings(rows + [repeat])
+    assert len(kept) == len(rows) and dropped == [repeat]
+    assert original in kept
+
+
+def test_rows_that_differ_in_any_figure_are_both_kept():
+    rows, _ = parse_results_page(SAMPLE)
+    changed = rows[0].__class__(**{**rows[0].__dict__, "time": "12:52:43", "eps": "56.36"})
+    kept, dropped = drop_repeated_postings(rows + [changed])
+    assert dropped == [] and len(kept) == len(rows) + 1
