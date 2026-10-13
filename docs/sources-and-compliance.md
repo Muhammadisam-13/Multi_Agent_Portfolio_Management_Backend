@@ -40,7 +40,7 @@ The team decision to proceed with low-volume automated retrieval while checking 
 4. **Annual reports are huge:** 1.27 M characters is far beyond a local model's context. They must be split into chunk items (stable ids such as `OGDC-DOC-<id>-p012`) or reduced to selected sections; one item per whole report is not workable.
 5. **Time zone and time of day:** the results table has timestamps (e.g. 15:50:52). The schema keeps dates only; an item stamped after market close on the as-of date is treated as available that day. Note this limitation in the report.
 
-## psxdata sends a PSX request token (found 2026-10-13, needs a team decision)
+## psxdata sends a PSX request token (found 2026-10-13; decided: keep, see decisions.md D3)
 
 While building the results fetcher, `psxdata.symbols()` failed with a 403 whose message mentioned an `X-Req-Id` token. Reading the
 library's source (`psxdata/scrapers/token.py`): since 2026-09-24 PSX rejects data (XHR) requests to dps.psx.com.pk with 403 unless they
@@ -52,8 +52,10 @@ with the token.
   (our plain POST likely lacked this token; not tested, and we are not testing it).
 - Price loading (`mizan/data/prices.py`, `fetch_prices`) therefore does what the team decided not to do for the announcements list.
   We had not read `token.py` when the price loader was written and run (2026-10-13, about 6 live calls for OGDC/HBL/HUBC).
-- Until the team decides, snapshots can be built without prices (`build_snapshot --no-prices`); the results fetcher does not use psxdata.
-- Open for the team/supervisor: keep psxdata for prices, replace it, or drop live prices for the demo.
+- **Decision (Isam, 2026-10-13):** keep live psxdata price calls under conditions: switchable off, fetched once per ticker and
+  cached, rate-limited, version pinned and output validated, and a refused token fails loudly. Details and enforcement:
+  `docs/decisions.md` D3. `build_snapshot --no-prices` still builds a snapshot without psxdata.
+- **Keep this note in the report:** PSX has required the `X-Req-Id` token on data requests since 2026-09-24, and psxdata sends it.
 
 ## Financial results fetcher (built 2026-10-13)
 
@@ -63,3 +65,22 @@ Live fetching is off by default (`--live` to enable). First live run: 1,381 rows
 Conventions: dividend codes such as (F), (D), (i) are passed through verbatim (the page has no legend);
 parentheses in profit/EPS cells are rendered as a loss, following the column headers "Profit / (Loss)" and "EPS /(LPS)";
 company names map to tickers via `data/ticker_names.json` (currently OGDC, HUBC, HBL only).
+
+## Demo tickers in the results table (checked 2026-10-13 against the cached page fetched 08:19 UTC)
+
+The page covers 2026-04-13 to 2026-10-12. Every company has at most two filing dates in that window (the March quarter in April,
+and the June year/half-year in July-September), each usually as an unconsolidated and a consolidated row.
+
+| Ticker | Company name on the page | Rows | Filing dates | Periods |
+|---|---|---|---|---|
+| OGDC | Oil & Gas Development Company Limited | 4 | 2026-04-29, 2026-09-08 | year to 30 Jun 2026; 3rd quarter to 31 Mar 2026 |
+| LUCK | Lucky Cement Limited | 4 | 2026-04-30, 2026-08-10 | year to 30 Jun 2026; 3rd quarter to 31 Mar 2026 |
+| HBL | Habib Bank Limited | 4 | 2026-04-17, 2026-08-04 | half year to 30 Jun 2026; 1st quarter to 31 Mar 2026 |
+| FFC | Fauji Fertilizer Company Limited | 3 | 2026-04-29, 2026-07-29 | half year to 30 Jun 2026 (one row, no consolidated/unconsolidated tag: labelled "unspecified"); 1st quarter to 31 Mar 2026 |
+| HUBC | The Hub Power Company Limited | 4 | 2026-04-22, 2026-08-27 | year to 30 Jun 2026; 3rd quarter to 31 Mar 2026 |
+| SYS | Systems Limited | 5 (4 items) | 2026-05-29, 2026-08-27 | half year to 30 Jun 2026; 1st quarter to 31 Mar 2026. One consolidated row was posted twice a second apart; the repeat is dropped |
+| ENGRO | **not mapped.** No "Engro Corporation Limited" on the page. Engro companies present: Engro Holdings Limited (4 rows), Engro Polymer & Chemicals, Engro Fertilizers, Engro Powergen Qadirpur, FrieslandCampina Engro Pakistan | - | - | - |
+
+- "Lucky Core Industries Limited" is also on the page; it is a different company from Lucky Cement and is not mapped to LUCK.
+- ENGRO is left unmapped rather than guessed: whether the ENGRO symbol now refers to Engro Holdings Limited has not been verified.
+- Repeated postings (identical in every field except time) are dropped, keeping the earliest, and reported as a fetcher note: 6 across the whole page on 2026-10-13.

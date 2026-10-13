@@ -34,7 +34,10 @@ If a task needs something outside this scope, ask first.
      (Isam, 2026-10-13): proceed with low-volume automated retrieval while checking with the supervisor,
      and email PSX if the supervisor says it is needed. Keep this note in `docs/` and the report.
    - There is no manual PDF drop-folder path. Remove any such code, config and docs if you find them.
-4. Frozen, versioned snapshots under `data/snapshots/` so runs are reproducible.
+4. Frozen, versioned snapshots under `data/snapshots/<name>/` so runs are reproducible. Snapshot contents
+   (`items.jsonl`, `raw/`) stay local and untracked (they hold PSX data); only each snapshot's `manifest.json`
+   (counts, date range, sha256 of the items) is committed, so a teammate can rebuild and verify the same snapshot.
+   Decisions and their reasons: `docs/decisions.md`.
 5. Keep an AI-usage log (`docs/ai_usage_log.md`); the GenAI-use rubric requires it.
 
 ## Repo layout (retrieval scope)
@@ -45,7 +48,7 @@ mizan/
   data/        # psxdata + SBP loaders, pdf_extract.py, normalizer.py
   retrieval/   # bundle.py (as-of filter), bm25.py, embeddings.py (only if needed)
 tests/
-data/{cache,snapshots}/   # cache is git-ignored; never commit raw PSX documents
+data/{cache,snapshots}/   # cache git-ignored; snapshots: only manifest.json committed; never commit raw PSX documents
 docs/
 ```
 

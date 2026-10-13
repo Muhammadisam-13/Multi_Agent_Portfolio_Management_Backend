@@ -5,3 +5,7 @@ __pycache__/
 
 # PSX fetcher cache: scraped PDFs and raw responses are never committed
 data/cache/
+
+# Snapshots stay local and untracked; only each snapshot's manifest.json (counts, date range, sha256) is committed
+data/snapshots/*/*
+!data/snapshots/*/manifest.json
