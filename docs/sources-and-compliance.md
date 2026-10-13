@@ -84,3 +84,5 @@ and the June year/half-year in July-September), each usually as an unconsolidate
 - "Lucky Core Industries Limited" is also on the page; it is a different company from Lucky Cement and is not mapped to LUCK.
 - ENGRO is left unmapped rather than guessed: whether the ENGRO symbol now refers to Engro Holdings Limited has not been verified.
 - Repeated postings (identical in every field except time) are dropped, keeping the earliest, and reported as a fetcher note: 6 across the whole page on 2026-10-13.
+- ENGRO prices (first live fetch, 2026-10-13): psxdata returns 2,039 rows from 2016-10-13 but they **stop at 2025-01-03**, so the ENGRO symbol has no recent trading. The results page lists Engro Holdings Limited; its current symbol has not been verified. ENGRO is excluded from snapshot demo-v1 until the team picks a symbol.
+- Other price fetches the same day: 2,466-2,479 rows each, newest 2026-10-13. psxdata flagged 0-4 rows per ticker as anomalies (OHLC inconsistent); flagged rows are kept and their item text says so.
