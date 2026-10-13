@@ -47,3 +47,9 @@ frozen into snapshots. Tickers and the as-of date are not chosen yet.
 ## Open questions
 - Which tickers and as-of date; supervisor's answer on automated retrieval (and whether a PSX email is then needed); mid meeting date.
 - Exact fields returned by psxdata fundamentals and by SBP EasyData (verify when building the loaders).
+
+## Verified psxdata 1.2.0 behaviour (2026-10-13)
+- `stocks()` returns date, open, high, low, close, volume, is_anomaly, newest first. Whether prices are adjusted for splits/dividends is not yet checked.
+- `fundamentals()` is the financial-report filing list (symbol, year, type, period_ended, posting_date, posting_time, document), not ratios; it returned 0 rows outside reporting season.
+- psxdata itself requests dps.psx.com.pk, so the compliance note covers it too.
+- Announcements list: `POST /announcements` (fields type, symbol, query, count, offset, date_from, date_to, page=annc). A plain POST returned 404 and a POST with `X-Requested-With` returned 403; unresolved, pending the team's decision.
