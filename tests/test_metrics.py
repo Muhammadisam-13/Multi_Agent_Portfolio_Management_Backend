@@ -47,10 +47,18 @@ def test_bm25_on_gold_set_logs_metrics():
     assert result["queries"] == len(gold["queries"])
     assert 0.0 <= result["recall@5"] <= 1.0 and 0.0 <= result["mrr"] <= 1.0
 
-    RESULTS.parent.mkdir(exist_ok=True)
-    RESULTS.write_text(json.dumps({
-        "run_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    report = {
         "retriever": "bm25 (rank_bm25.BM25Okapi, k1=1.5, b=0.75)",
         "gold_set": "tests/fixtures/gold_queries.json (fake fixture data)",
         **result,
-    }, indent=2), encoding="utf-8")
+    }
+    # rewrite only when the scores change, so a plain test run leaves git clean
+    if RESULTS.exists() and _without_timestamp(json.loads(RESULTS.read_text(encoding="utf-8"))) == report:
+        return
+    RESULTS.parent.mkdir(exist_ok=True)
+    RESULTS.write_text(json.dumps({"run_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), **report},
+                                  indent=2), encoding="utf-8")
+
+
+def _without_timestamp(report: dict) -> dict:
+    return {k: v for k, v in report.items() if k != "run_utc"}
