@@ -15,8 +15,8 @@ news, central bank statements) as distinct, dated, citable evidence items with s
 | SBP EasyData | Pakistan macro numbers (policy rate, inflation, KIBOR, PKR). Needs an API key; verify its current docs before building. |
 | FRED (fredapi) | Optional global context; skip for now. |
 | PSX Data Services / Capital Stake | Paid/licensed; not used now. Mention as the production path. |
-| PSX Data Portal announcements (PDFs) | Main narrative source. **Fetched automatically** by the `fetcher` module (rate-limited, cached, switchable). See the compliance note below. |
-| News sites, SBP monetary policy statements | Fetched automatically where a feed exists (RSS at psx.com.pk/psx/news and outlet RSS feeds); check what each feed carries and each site's terms. |
+| PSX filings (financial results table + report PDFs) | Main narrative source. **Fetched automatically** by the `fetcher` module (rate-limited, cached, switchable). The dps.psx.com.pk announcements list is **not used** (403 / reCAPTCHA; decision in docs/sources-and-compliance.md). Sources: www.psx.com.pk financial-announcements table and financials.psx.com.pk. |
+| News sites, SBP monetary policy statements | **No RSS feed found** (psx.com.pk/psx/news redirects to an HTML articles page; checked 2026-10-13). Other narrative sources: see docs/sources-and-compliance.md. Check each site's terms. |
 
 ## Pipeline
 ```
@@ -24,8 +24,7 @@ psxdata / SBP EasyData / PSX announcements fetcher / news feeds -> local cache -
 ```
 The whole path is automatic. The fetcher is a swappable module with a config switch to disable live fetching, so tests and demos
 run from cache or snapshots. PDF extraction (PyMuPDF/pdfplumber) is the real work; some PSX documents are scanned and may need OCR.
-The portal's announcements page loads its list dynamically; inspect the page's own background requests rather than guessing endpoints,
-and expect the page structure to change.
+Do not try to get around the dps.psx.com.pk announcements block; see docs/sources-and-compliance.md. Expect page structures to change.
 
 ## Compliance note (keep in the report)
 PSX's Terms of Use restrict automated retrieval without written permission. Team decision (Isam, 2026-10-13): proceed with
@@ -45,7 +44,7 @@ disabled, and raw PSX documents are never committed to git or redistributed.
 frozen into snapshots. Tickers and the as-of date are not chosen yet.
 
 ## Open questions
-- Which tickers and as-of date; supervisor's answer on automated retrieval (and whether a PSX email is then needed); mid meeting date.
+- Which tickers and as-of date (the financial-results table only covers 2026-04-13 onward, so the as-of date should fall in that window); supervisor's answer on automated retrieval (and whether a PSX email is then needed); mid meeting date.
 - Exact fields returned by psxdata fundamentals and by SBP EasyData (verify when building the loaders).
 
 ## Verified psxdata 1.2.0 behaviour (2026-10-13)
