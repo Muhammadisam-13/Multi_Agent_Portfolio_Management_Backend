@@ -11,9 +11,11 @@ Goal: a tested retrieval layer that returns an as-of-dated `EvidenceBundle` for 
 6. Gold set (start with ~10 hand-labeled queries -> expected evidence IDs) and a test that logs recall@5 and MRR to a file.
 7. Measure bundle token sizes for the real data; decide whether search is needed or whole bundles fit in context.
 8. Only if BM25 recall is insufficient: add embeddings (check current small embedding models, e.g. bge-m3, nomic-embed-text) and compare to BM25.
-9. Loaders and normalizer (`mizan/data/`): psxdata prices/fundamentals, SBP macro, PDF -> text from the drop folder, all producing `EvidenceItem` files in `data/snapshots/`.
+9. `mizan/fetcher/`: automated PSX announcements fetcher (rate limit, User-Agent, local cache, config switch to disable live fetching).
+   Test it against saved responses so the test suite never hits PSX.
+10. Loaders and normalizer (`mizan/data/`): psxdata prices/fundamentals, SBP macro, cached PDFs -> text, all producing `EvidenceItem` files in `data/snapshots/`.
 
-Steps 1-6 can run on fake data right away; step 9 plugs real data in once teammates' loaders exist.
+Steps 1-6 can run on fake data right away; steps 9-10 plug real data in.
 
 ## Done means
 `pytest` passes on the laptop (CPU only); leakage and isolation tests exist; gold-set metrics are logged to a file.

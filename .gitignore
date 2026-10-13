@@ -2,3 +2,6 @@ venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# PSX fetcher cache: scraped PDFs and raw responses are never committed
+data/cache/
