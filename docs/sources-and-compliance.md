@@ -39,3 +39,27 @@ The team decision to proceed with low-volume automated retrieval while checking 
 3. **`posting_date` on old filings is a bulk upload date:** 14 of OGDC's 47 reports show `2018-12-27`, which is when they were loaded into the portal, not when they were published. For the no-look-ahead rule these items are too late-dated to be trusted (they would hide from earlier as-of dates, or leak if the real date is later). Recent filings look real (quarterlies ~30 days after period end). Use only filings whose posting date is plausible, or restrict the demo to the recent window.
 4. **Annual reports are huge:** 1.27 M characters is far beyond a local model's context. They must be split into chunk items (stable ids such as `OGDC-DOC-<id>-p012`) or reduced to selected sections; one item per whole report is not workable.
 5. **Time zone and time of day:** the results table has timestamps (e.g. 15:50:52). The schema keeps dates only; an item stamped after market close on the as-of date is treated as available that day. Note this limitation in the report.
+
+## psxdata sends a PSX request token (found 2026-10-13, needs a team decision)
+
+While building the results fetcher, `psxdata.symbols()` failed with a 403 whose message mentioned an `X-Req-Id` token. Reading the
+library's source (`psxdata/scrapers/token.py`): since 2026-09-24 PSX rejects data (XHR) requests to dps.psx.com.pk with 403 unless they
+carry an `X-Req-Id` header equal to a token (`window.__ps._k`) that PSX embeds in its HTML pages. psxdata fetches that token from a PSX
+page and attaches it to **every** request, including the price requests used by `mizan/data/prices.py`. `symbols()` still got 403
+with the token.
+
+- This is not reCAPTCHA, but it is an access check on the same family of requests as the announcements endpoint that returned 403
+  (our plain POST likely lacked this token; not tested, and we are not testing it).
+- Price loading (`mizan/data/prices.py`, `fetch_prices`) therefore does what the team decided not to do for the announcements list.
+  We had not read `token.py` when the price loader was written and run (2026-10-13, about 6 live calls for OGDC/HBL/HUBC).
+- Until the team decides, snapshots can be built without prices (`build_snapshot --no-prices`); the results fetcher does not use psxdata.
+- Open for the team/supervisor: keep psxdata for prices, replace it, or drop live prices for the demo.
+
+## Financial results fetcher (built 2026-10-13)
+
+`mizan/fetcher/results_table.py` reads the static table at `www.psx.com.pk/psx/announcement/financial-announcements` with plain GET
+requests (no token, cookies or special headers), one page per refresh, cached under `data/cache/` (git-ignored).
+Live fetching is off by default (`--live` to enable). First live run: 1,381 rows, 2026-04-13 to 2026-10-12.
+Conventions: dividend codes such as (F), (D), (i) are passed through verbatim (the page has no legend);
+parentheses in profit/EPS cells are rendered as a loss, following the column headers "Profit / (Loss)" and "EPS /(LPS)";
+company names map to tickers via `data/ticker_names.json` (currently OGDC, HUBC, HBL only).
