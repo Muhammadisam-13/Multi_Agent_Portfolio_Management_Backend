@@ -1,0 +1,140 @@
+{
+  "run_utc": "2026-10-13T07:12:36+00:00",
+  "retriever": "bm25 (rank_bm25.BM25Okapi, k1=1.5, b=0.75)",
+  "gold_set": "tests/fixtures/gold_queries.json (fake fixture data)",
+  "as_of": "2025-06-30",
+  "k": 5,
+  "queries": 10,
+  "recall@5": 0.7,
+  "mrr": 0.7,
+  "per_query": [
+    {
+      "id": "q01",
+      "ticker": "AAA",
+      "query": "dividend payout",
+      "relevant": [
+        "AAA-ANN-2025-04-25"
+      ],
+      "returned": [
+        "AAA-ANN-2025-04-25"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "q02",
+      "ticker": "AAA",
+      "query": "quarterly results revenue growth",
+      "relevant": [
+        "AAA-ANN-2025-04-25"
+      ],
+      "returned": [
+        "AAA-ANN-2025-04-25"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "q03",
+      "ticker": "AAA",
+      "query": "new production line capacity",
+      "relevant": [
+        "AAA-ANN-2025-06-30"
+      ],
+      "returned": [
+        "AAA-ANN-2025-06-30"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "q04",
+      "ticker": "AAA",
+      "query": "interest rate decision by the central bank",
+      "relevant": [
+        "MACRO-POLICY-2025-05-05"
+      ],
+      "returned": [
+        "MACRO-POLICY-2025-05-05"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "q05",
+      "ticker": "AAA",
+      "query": "inflation",
+      "relevant": [
+        "MACRO-CPI-2025-06-02"
+      ],
+      "returned": [
+        "MACRO-CPI-2025-06-02"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "q06",
+      "ticker": "BBB",
+      "query": "plant expansion delay",
+      "relevant": [
+        "BBB-ANN-2025-05-10"
+      ],
+      "returned": [
+        "BBB-ANN-2025-05-10"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "q07",
+      "ticker": "BBB",
+      "query": "earnings per share and leverage",
+      "relevant": [
+        "BBB-FUND-2025-03-31"
+      ],
+      "returned": [
+        "MACRO-FX-2025-06-27"
+      ],
+      "recall@5": 0.0,
+      "rr": 0.0
+    },
+    {
+      "id": "q08",
+      "ticker": "BBB",
+      "query": "recent share price movement",
+      "relevant": [
+        "BBB-PRICE-2025-06-27"
+      ],
+      "returned": [],
+      "recall@5": 0.0,
+      "rr": 0.0
+    },
+    {
+      "id": "q09",
+      "ticker": "CCC",
+      "query": "export partnership",
+      "relevant": [
+        "CCC-ANN-2025-06-02"
+      ],
+      "returned": [
+        "CCC-ANN-2025-06-02"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "q10",
+      "ticker": "CCC",
+      "query": "rupee dollar exchange rate",
+      "relevant": [
+        "MACRO-FX-2025-06-27"
+      ],
+      "returned": [
+        "MACRO-POLICY-2025-05-05"
+      ],
+      "recall@5": 0.0,
+      "rr": 0.0
+    }
+  ]
+}
