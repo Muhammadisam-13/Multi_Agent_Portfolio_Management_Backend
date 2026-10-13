@@ -1,7 +1,7 @@
 """Build a frozen evidence snapshot from PSX financial results and (optionally) psxdata prices.
 
-Results come from mizan.fetcher and run from the local cache unless --live is given.
-Prices use psxdata, which always makes live requests; skip them with --no-prices.
+Both sources run from the local cache (data/cache/) unless --live is given. With --live,
+missing data is fetched once and cached; cached prices are re-fetched only with --refresh-prices.
 
 Examples:
     python -m mizan.data.build_snapshot --name demo-v1 --tickers OGDC HUBC HBL --no-prices
@@ -12,11 +12,11 @@ Examples:
 import argparse
 import sys
 from datetime import date
-from importlib.metadata import version
 from pathlib import Path
 
 from mizan.data.snapshot import write_snapshot
 from mizan.fetcher.config import FetchConfig
+from mizan.fetcher.errors import FetchError
 from mizan.fetcher.results_table import FinancialResultsFetcher
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,7 +29,8 @@ def main(argv=None) -> int:
     p.add_argument("--start", type=date.fromisoformat, help="first price date (needed unless --no-prices)")
     p.add_argument("--end", type=date.fromisoformat, help="last price date (needed unless --no-prices)")
     p.add_argument("--no-prices", action="store_true", help="skip the psxdata price loader")
-    p.add_argument("--live", action="store_true", help="let the fetcher request PSX pages (default: cache only)")
+    p.add_argument("--live", action="store_true", help="allow network requests for missing data (default: cache only)")
+    p.add_argument("--refresh-prices", action="store_true", help="re-fetch cached price histories (needs --live)")
     p.add_argument("--out-dir", type=Path, default=ROOT / "data" / "snapshots")
     args = p.parse_args(argv)
     if not args.no_prices and not (args.start and args.end):
@@ -38,7 +39,8 @@ def main(argv=None) -> int:
     tickers = [t.upper() for t in args.tickers]
     items, meta = [], {"tickers": tickers}
 
-    result = FinancialResultsFetcher(FetchConfig(live=args.live)).fetch(tickers)
+    config = FetchConfig(live=args.live)
+    result = FinancialResultsFetcher(config).fetch(tickers)
     items += result.items
     meta["results_fetcher_notes"] = result.warnings
     for w in result.warnings:
@@ -47,14 +49,15 @@ def main(argv=None) -> int:
 
     raw_prices = {}
     if not args.no_prices:
-        from mizan.data.prices import fetch_prices, prices_to_items  # psxdata is only needed here
+        from mizan.data.prices import PSXDATA_VERSION, PriceLoader, prices_to_items
+        loader = PriceLoader(config)
         for ticker in tickers:
-            df = fetch_prices(ticker, args.start, args.end)
+            df = loader.load_prices(ticker, args.start, args.end, refresh=args.refresh_prices)
             raw_prices[ticker] = df
             items += prices_to_items(ticker, df)
             print(f"{ticker}: {len(df)} trading days {df['date'].min()}..{df['date'].max()}")
         meta["price_range"] = [args.start.isoformat(), args.end.isoformat()]
-        meta["psxdata_version"] = version("psxdata")
+        meta["psxdata_version"] = PSXDATA_VERSION
 
     snap = write_snapshot(items, args.out_dir / args.name, meta=meta)
     if raw_prices:  # raw price tables next to the items so the snapshot can be audited
@@ -67,4 +70,8 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except FetchError as exc:   # blocked, cache miss, changed page ...: say what and stop, write nothing
+        print(f"SNAPSHOT NOT WRITTEN ({type(exc).__name__}): {exc}", file=sys.stderr)
+        sys.exit(1)

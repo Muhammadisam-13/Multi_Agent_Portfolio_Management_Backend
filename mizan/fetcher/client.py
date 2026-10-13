@@ -16,6 +16,25 @@ from mizan.fetcher.errors import (
 )
 
 
+class Throttle:
+    """Enforces a minimum gap between consecutive requests (shared by every live source)."""
+
+    def __init__(self, min_interval_s: float,
+                 sleep: Callable[[float], None] = time.sleep,
+                 clock: Callable[[], float] = time.monotonic):
+        self.min_interval_s = min_interval_s
+        self._sleep = sleep
+        self._clock = clock
+        self._last: float | None = None
+
+    def wait(self) -> None:
+        if self._last is not None:
+            remaining = self.min_interval_s - (self._clock() - self._last)
+            if remaining > 0:
+                self._sleep(remaining)
+        self._last = self._clock()
+
+
 class PoliteClient:
     """GET pages one at a time with a minimum gap between requests.
 
@@ -29,8 +48,7 @@ class PoliteClient:
         self.config = config
         self.session = session or requests.Session()
         self._sleep = sleep
-        self._clock = clock
-        self._last_request: float | None = None
+        self.throttle = Throttle(config.min_interval_s, sleep, clock)
 
     def get_text(self, url: str) -> str:
         if not self.config.live:
@@ -38,7 +56,7 @@ class PoliteClient:
 
         failure: FetchError | None = None
         for attempt in range(self.config.max_retries + 1):
-            self._wait_for_turn()
+            self.throttle.wait()
             try:
                 resp = self.session.get(
                     url,
@@ -69,10 +87,3 @@ class PoliteClient:
 
         assert failure is not None
         raise failure
-
-    def _wait_for_turn(self) -> None:
-        if self._last_request is not None:
-            wait = self.config.min_interval_s - (self._clock() - self._last_request)
-            if wait > 0:
-                self._sleep(wait)
-        self._last_request = self._clock()
