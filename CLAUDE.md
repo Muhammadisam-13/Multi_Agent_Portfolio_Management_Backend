@@ -24,20 +24,31 @@ If a task needs something outside this scope, ask first.
 ## Hard rules
 1. **No look-ahead:** a bundle for `as_of` contains only items with `date <= as_of`. Enforce in code and test.
 2. **Ticker isolation:** a ticker query returns that ticker's items plus MACRO only.
-3. **Do not scrape dps.psx.com.pk automatically.** Its Terms of Use forbid bots/systematic retrieval without
-   written permission. Documents arrive via a drop folder (`data/raw_documents/<TICKER>/`); an automatic
-   fetcher is a swappable module added only if PSX permits.
-4. Frozen, versioned snapshots under `data/snapshots/` so runs are reproducible.
+3. **Automated retrieval of PSX public announcements is in scope** (no manual PDF downloading as the main path).
+   Build it as a swappable `fetcher` module with these guardrails:
+   - Polite rate limit (a request every few seconds, configurable), a clear `User-Agent` naming the project,
+     and a local cache so each document is downloaded only once.
+   - A config switch to disable live fetching (tests and demos run from cache/snapshots).
+   - Never commit scraped PDFs or raw PSX data to git (add to `.gitignore`).
+   - Note: PSX's Terms of Use restrict automated retrieval without written permission. Team decision
+     (Isam, 2026-10-13): proceed with low-volume automated retrieval while checking with the supervisor,
+     and email PSX if the supervisor says it is needed. Keep this note in `docs/` and the report.
+   - There is no manual PDF drop-folder path. Remove any such code, config and docs if you find them.
+4. Frozen, versioned snapshots under `data/snapshots/<name>/` so runs are reproducible. Snapshot contents
+   (`items.jsonl`, `raw/`) stay local and untracked (they hold PSX data); only each snapshot's `manifest.json`
+   (counts, date range, sha256 of the items) is committed, so a teammate can rebuild and verify the same snapshot.
+   Decisions and their reasons: `docs/decisions.md`.
 5. Keep an AI-usage log (`docs/ai_usage_log.md`); the GenAI-use rubric requires it.
 
 ## Repo layout (retrieval scope)
 ```
 mizan/
   schemas.py
+  fetcher/     # automated PSX announcements fetcher (rate-limited, cached, can be switched off)
   data/        # psxdata + SBP loaders, pdf_extract.py, normalizer.py
   retrieval/   # bundle.py (as-of filter), bm25.py, embeddings.py (only if needed)
 tests/
-data/{raw_documents,snapshots}/
+data/{cache,snapshots}/   # cache git-ignored; snapshots: only manifest.json committed; never commit raw PSX documents
 docs/
 ```
 

@@ -15,15 +15,22 @@ news, central bank statements) as distinct, dated, citable evidence items with s
 | SBP EasyData | Pakistan macro numbers (policy rate, inflation, KIBOR, PKR). Needs an API key; verify its current docs before building. |
 | FRED (fredapi) | Optional global context; skip for now. |
 | PSX Data Services / Capital Stake | Paid/licensed; not used now. Mention as the production path. |
-| PSX Data Portal announcements (PDFs) | Main narrative source. **Manual drop folder for now** (ToS, see CLAUDE.md rule 3). Teammates are emailing marketdatarequest@psx.com.pk for permission. |
-| News sites, SBP monetary policy statements | Saved as text files by hand; check each site's terms. RSS at psx.com.pk/psx/news is a better automation candidate than HTML scraping. |
+| PSX filings (financial results table + report PDFs) | Main narrative source. **Fetched automatically** by the `fetcher` module (rate-limited, cached, switchable). The dps.psx.com.pk announcements list is **not used** (403 / reCAPTCHA; decision in docs/sources-and-compliance.md). Sources: www.psx.com.pk financial-announcements table and financials.psx.com.pk. |
+| News sites, SBP monetary policy statements | **No RSS feed found** (psx.com.pk/psx/news redirects to an HTML articles page; checked 2026-10-13). Other narrative sources: see docs/sources-and-compliance.md. Check each site's terms. |
 
 ## Pipeline
 ```
-psxdata / SBP EasyData / PDFs->text / saved news text -> raw cache -> normalizer -> EvidenceItem files -> EvidenceBundle(ticker, as_of)
+psxdata / SBP EasyData / PSX announcements fetcher / news feeds -> local cache -> PDF->text + normalizer -> EvidenceItem files -> EvidenceBundle(ticker, as_of)
 ```
-The fetcher is swappable (manual drop folder now, automatic later if permitted). Everything from the drop folder onward is automatic.
-PDF extraction (PyMuPDF/pdfplumber) is the real work; some PSX documents are scanned and may need OCR.
+The whole path is automatic. The fetcher is a swappable module with a config switch to disable live fetching, so tests and demos
+run from cache or snapshots. PDF extraction (PyMuPDF/pdfplumber) is the real work; some PSX documents are scanned and may need OCR.
+Do not try to get around the dps.psx.com.pk announcements block; see docs/sources-and-compliance.md. Expect page structures to change.
+
+## Compliance note (keep in the report)
+PSX's Terms of Use restrict automated retrieval without written permission. Team decision (Isam, 2026-10-13): proceed with
+low-volume automated retrieval of public announcements while checking with the supervisor, and email PSX if the supervisor says
+it is needed. Guardrails: polite rate limit, project-identifying User-Agent, local cache (download once), live fetching can be
+disabled, and raw PSX documents are never committed to git or redistributed.
 
 ## Retrieval testing (no LLM needed)
 - Hard tests: no future-dated items in a bundle; ticker isolation; empty ticker returns an empty bundle without crashing.
@@ -33,9 +40,15 @@ PDF extraction (PyMuPDF/pdfplumber) is the real work; some PSX documents are sca
   fit in the model's context, in which case search-style retrieval is optional; the dated, ID'd bundle design still matters.
 
 ## Demo-scale data (initial target)
-5-10 tickers across sectors, one fixed as-of date, 3-5 curated text items per ticker, SBP policy rate and inflation,
+5-10 tickers across sectors, one fixed as-of date, recent announcements fetched automatically per ticker, SBP policy rate and inflation,
 frozen into snapshots. Tickers and the as-of date are not chosen yet.
 
 ## Open questions
-- Which tickers and as-of date; whether PSX replies to the permission email; mid meeting date.
+- Which tickers and as-of date (the financial-results table only covers 2026-04-13 onward, so the as-of date should fall in that window); supervisor's answer on automated retrieval (and whether a PSX email is then needed); mid meeting date.
 - Exact fields returned by psxdata fundamentals and by SBP EasyData (verify when building the loaders).
+
+## Verified psxdata 1.2.0 behaviour (2026-10-13)
+- `stocks()` returns date, open, high, low, close, volume, is_anomaly, newest first. Whether prices are adjusted for splits/dividends is not yet checked.
+- `fundamentals()` is the financial-report filing list (symbol, year, type, period_ended, posting_date, posting_time, document), not ratios; it returned 0 rows outside reporting season.
+- psxdata itself requests dps.psx.com.pk, so the compliance note covers it too.
+- Announcements list: `POST /announcements` (fields type, symbol, query, count, offset, date_from, date_to, page=annc). A plain POST returned 404 and a POST with `X-Requested-With` returned 403; unresolved, pending the team's decision.

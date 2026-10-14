@@ -1,0 +1,38 @@
+{
+  "created_utc": "2026-10-13T11:11:26+00:00",
+  "item_count": 761,
+  "items_by_ticker": {
+    "FFC": 126,
+    "HBL": 127,
+    "HUBC": 127,
+    "LUCK": 127,
+    "OGDC": 127,
+    "SYS": 127
+  },
+  "items_by_type": {
+    "financial_results": 23,
+    "price": 738
+  },
+  "date_range": [
+    "2026-04-13",
+    "2026-10-12"
+  ],
+  "items_sha256": "360a675a33025de3155e8c83b395f477ce75913275ede6204554320394105798",
+  "tickers": [
+    "OGDC",
+    "LUCK",
+    "HBL",
+    "FFC",
+    "HUBC",
+    "SYS"
+  ],
+  "results_fetcher_notes": [
+    "dropped repeated posting: Systems Limited, 2026-08-27 12:49:45 (identical to an earlier row)",
+    "results table page fetched 2026-10-13T08:19:42.942631+00:00, 1375 rows from 2026-04-13 to 2026-10-12"
+  ],
+  "price_range": [
+    "2026-04-13",
+    "2026-10-12"
+  ],
+  "psxdata_version": "1.2.0"
+}

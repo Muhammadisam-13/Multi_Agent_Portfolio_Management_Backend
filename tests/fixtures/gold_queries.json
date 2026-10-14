@@ -1,0 +1,16 @@
+{
+  "_note": "Hand-labelled queries over tests/fixtures/evidence_items.jsonl (fake data). Written as an agent would phrase them, not tuned to BM25. Checks the evaluation pipeline; a gold set over real PSX data comes after the fetcher.",
+  "as_of": "2025-06-30",
+  "queries": [
+    {"id": "q01", "ticker": "AAA", "query": "dividend payout", "relevant": ["AAA-ANN-2025-04-25"]},
+    {"id": "q02", "ticker": "AAA", "query": "quarterly results revenue growth", "relevant": ["AAA-ANN-2025-04-25"]},
+    {"id": "q03", "ticker": "AAA", "query": "new production line capacity", "relevant": ["AAA-ANN-2025-06-30"]},
+    {"id": "q04", "ticker": "AAA", "query": "interest rate decision by the central bank", "relevant": ["MACRO-POLICY-2025-05-05"]},
+    {"id": "q05", "ticker": "AAA", "query": "inflation", "relevant": ["MACRO-CPI-2025-06-02"]},
+    {"id": "q06", "ticker": "BBB", "query": "plant expansion delay", "relevant": ["BBB-ANN-2025-05-10"]},
+    {"id": "q07", "ticker": "BBB", "query": "earnings per share and leverage", "relevant": ["BBB-FUND-2025-03-31"]},
+    {"id": "q08", "ticker": "BBB", "query": "recent share price movement", "relevant": ["BBB-PRICE-2025-06-27"]},
+    {"id": "q09", "ticker": "CCC", "query": "export partnership", "relevant": ["CCC-ANN-2025-06-02"]},
+    {"id": "q10", "ticker": "CCC", "query": "rupee dollar exchange rate", "relevant": ["MACRO-FX-2025-06-27"]}
+  ]
+}
