@@ -4,6 +4,7 @@ Interactive docs at /docs, machine-readable contract at /openapi.json.
 Every endpoint reads the verified snapshot or the local caches; none of them fetches from PSX (decision D11).
 """
 
+import time
 from datetime import date
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -12,11 +13,13 @@ from fastapi.responses import JSONResponse
 
 from api import __version__
 from api.config import Settings
-from api.models import Health, ModelTest, ModelTimings, SnapshotSummary, TickerOut
+from api.models import (AskContext, AskIn, AskOut, AskTimings, ClaimOut, Health, ModelTest, ModelTimings, SnapshotSummary,
+                        TickerOut)
 from mizan.data.prices import PriceRow, cached_price_rows
 from mizan.data.tickers import TickerInfo, load_tickers
 from mizan.fetcher.errors import CacheMiss
 from mizan.llm import LLM, BadOutput, LLMUnavailable, ModelHealth, ModelMissing
+from mizan.llm.ask import UngroundedAnswer, ask
 from mizan.llm.ollama import OllamaClient
 from mizan.llm.selftest import run_self_test
 from mizan.retrieval.store import SnapshotError, SnapshotStore, resolve_snapshot_folder
@@ -162,6 +165,37 @@ def create_app(settings: Settings | None = None, llm: LLM | None = None) -> Fast
                          timings_ms=ModelTimings(total=result.total_ms, load=result.load_ms),
                          tokens_per_second=result.tokens_per_second, prompt_tokens=result.prompt_tokens,
                          completion_tokens=result.completion_tokens)
+
+    # --- 8. answer a question over the as-of evidence --------------------------------------------
+    @app.post("/ask", response_model=AskOut, tags=["model"])
+    def ask_question(body: AskIn, request: Request, tickers: dict[str, TickerInfo] = Depends(get_tickers)) -> AskOut:
+        """Answers `question` from the ticker's evidence dated on or before `as_of` (plus MACRO), cut to the token budget.
+        Every claim cites evidence ids, and every cited id is one of the items returned in `evidence`.
+        404: unknown ticker. 422: bad input. 503: snapshot not usable, model server unreachable or model not pulled.
+        502: the model's reply did not match the schema, or cited evidence it was not shown, after one retry."""
+        ticker = known_ticker(body.ticker, tickers)
+        store = get_store(request)
+        as_of = body.as_of or store.latest_date() or date.today()
+        started = time.perf_counter()
+        evidence = store.bundle(ticker, as_of)
+        bundle_ms = (time.perf_counter() - started) * 1000
+        try:
+            result = ask(body.question, evidence, request.app.state.llm, settings.ask_budget_tokens)
+        except (ModelMissing, LLMUnavailable) as exc:
+            raise HTTPException(503, str(exc))
+        except (BadOutput, UngroundedAnswer) as exc:
+            raise HTTPException(502, str(exc))
+        return AskOut(
+            ticker=ticker, as_of=as_of, answer=result.answer,
+            claims=[ClaimOut(text=c.text, evidence_ids=list(c.evidence_ids)) for c in result.claims],
+            evidence=list(result.evidence), cited_ids=list(result.cited_ids),
+            insufficient_evidence=result.insufficient_evidence, model=result.model,
+            timings_ms=AskTimings(retrieval=round(bundle_ms + result.timings.retrieval_ms, 1), model=result.timings.model_ms),
+            tokens_per_second=result.tokens_per_second, prompt_tokens=result.prompt_tokens,
+            completion_tokens=result.completion_tokens,
+            context=AskContext(budget_tokens=result.context.budget_tokens, used_tokens=result.context.used_tokens,
+                               dropped=result.context.dropped),
+            attempts=result.attempts)
 
     return app
 
