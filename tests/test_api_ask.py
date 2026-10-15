@@ -13,6 +13,7 @@ from mizan.llm.fake import FakeLLM
 from mizan.retrieval.bundle import load_items
 from mizan.schemas import EvidenceItem
 from tests.test_api import AS_OF, FIXTURES, LOCAL, make_settings
+from tests.test_llm_chat import Resp, Session, reply
 
 FUTURE_MARKER = "QZX-FUTURE-5290"                 # only in an AAA item dated after AS_OF
 OTHER_MARKER = "QZX-OTHER-TICKER-8812"            # only in a BBB item dated before AS_OF
@@ -191,6 +192,50 @@ def test_the_real_client_with_nothing_listening_is_503(tmp_path):
 
 def test_get_is_not_allowed(tmp_path):
     assert app_with(tmp_path, FakeLLM()).get("/ask").status_code == 405
+
+
+# --- cut-off replies through the app's real Ollama client ------------------------------------------------
+# Truncation is reported by the Ollama server (done_reason "length") and handled inside OllamaClient, which FakeLLM replaces,
+# so these tests keep the client the app builds from its settings and give it a fake HTTP session (no network).
+
+def ollama_app(tmp_path, *answers, **overrides):
+    app = create_app(marked_settings(tmp_path, ollama_url="http://fake-ollama:11434", ollama_model="qwen3:4b-instruct",
+                                     **overrides))
+    app.state.llm.session = Session(*answers)
+    return TestClient(app), app.state.llm.session
+
+
+def cut_off(tail="TAIL-MARKER"):
+    """A reply stopped at the num_predict limit: the JSON is unfinished."""
+    return Resp(body=reply('{"answer": "OGDC reported its annual results' + " and more" * 200 + tail, done_reason="length"))
+
+
+def test_a_cut_off_reply_then_a_valid_one_is_a_200(tmp_path):
+    c, session = ollama_app(tmp_path, cut_off(), Resp(body=reply(answer())))
+    r = post_ask(c)
+    assert r.status_code == 200 and r.json()["answer"] == GROUNDED["answer"] and len(session.posts) == 2
+    first, retry = (p["json"]["messages"] for p in session.posts)
+    assert retry[:len(first)] == first and len(retry) == len(first) + 1        # only a short note is added
+    assert retry[-1]["role"] == "user" and "cut off at the 1024-token limit" in retry[-1]["content"]
+    assert "and more" not in retry[-1]["content"]                               # the cut-off reply is not resent
+
+
+def test_two_cut_off_replies_are_a_502_without_the_reply_text(tmp_path, caplog):
+    c, session = ollama_app(tmp_path, cut_off(), cut_off())
+    with caplog.at_level("WARNING", logger="mizan.llm.ollama"):
+        r = post_ask(c)
+    assert r.status_code == 502 and set(r.json()) == {"detail"} and len(session.posts) == 2
+    assert "cut off at the 1024-token limit" in r.json()["detail"] and "after 2 attempts" in r.json()["detail"]
+    assert "TAIL-MARKER" not in r.json()["detail"] and "and more" not in r.json()["detail"]
+    assert sum("TAIL-MARKER" in rec.getMessage() for rec in caplog.records) == 2       # the tail is in the server log
+
+
+def test_the_num_predict_setting_reaches_every_chat_request(tmp_path):
+    c, session = ollama_app(tmp_path, cut_off(), cut_off(), ollama_num_predict=700, ollama_num_ctx=4096)
+    r = post_ask(c)
+    assert [p["json"]["options"]["num_predict"] for p in session.posts] == [700, 700]
+    assert all(p["json"]["options"]["num_ctx"] == 4096 for p in session.posts)
+    assert r.status_code == 502 and "cut off at the 700-token limit" in r.json()["detail"]
 
 
 # --- contract and no network --------------------------------------------------------------------------
