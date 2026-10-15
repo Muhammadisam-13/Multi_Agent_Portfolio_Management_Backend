@@ -21,9 +21,11 @@ SYSTEM_PROMPT = (
     "message. Each evidence item starts with its id in square brackets, then its date, type and source.\n"
     "Rules:\n"
     "- Answer only from the listed evidence. Use no outside knowledge.\n"
-    "- Every claim must cite the id of each evidence item it relies on, written exactly as shown, without the brackets.\n"
+    "- Every claim must cite the id of each evidence item it relies on, copied exactly as shown, without the brackets. "
+    "Cite only ids from the listed evidence.\n"
     "- Do not state any number that does not appear in the evidence.\n"
     "- If the evidence is not enough to answer, say so in the answer and set insufficient_evidence to true.\n"
+    "- Be brief: the answer is at most 2 sentences, with at most 3 claims of one short sentence each.\n"
     "Reply with only a JSON object with the fields answer, claims (each with text and evidence_ids) and insufficient_evidence."
 )
 EVIDENCE_HEADER = "Evidence ({count} items):"

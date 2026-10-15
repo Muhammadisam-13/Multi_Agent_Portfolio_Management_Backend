@@ -67,7 +67,8 @@ def test_the_prompt_is_rules_then_evidence_then_question_with_the_answer_schema(
     assert [m["role"] for m in messages] == ["system", "user", "user"] and messages[0]["content"] == SYSTEM_PROMPT
     assert "[AAA-RES-2026-08-20] 2026-08-20 | financial_results | psx_results\nAAA annual results" in messages[1]["content"]
     assert messages[1]["content"].startswith("Evidence (4 items):") and messages[2]["content"] == f"Question: {QUESTION}"
-    for rule in ("only from the listed evidence", "cite the id", "no outside knowledge", "not enough", "any number"):
+    for rule in ("only from the listed evidence", "cite the id", "no outside knowledge", "not enough", "any number",
+                 "copied exactly as shown", "Cite only ids from the listed evidence", "at most 2 sentences", "at most 3 claims"):
         assert rule in SYSTEM_PROMPT
 
 
