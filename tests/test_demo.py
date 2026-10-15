@@ -65,3 +65,10 @@ def test_cli_reports_a_missing_snapshot(tmp_path, capsys):
     assert main(["--snapshot", "nope", "--ticker", "AAA", "--as-of", "2025-06-30",
                  "--snapshots-dir", str(tmp_path)]) == 1
     assert "SNAPSHOT NOT USABLE" in capsys.readouterr().err
+
+
+def test_budget_shows_what_fits_and_what_was_left_out(items):
+    text = build_report(items, "AAA", AS_OF, query="dividend", budget_tokens=100)
+    assert "Context for the model: budget 100 tokens (estimate)" in text and "left out:" in text
+    assert "AAA-ANN-2025-04-25" in text.split("Context for the model")[1]          # the dividend announcement was kept
+    assert "Context for the model" not in build_report(items, "AAA", AS_OF)

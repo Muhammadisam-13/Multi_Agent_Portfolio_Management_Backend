@@ -17,6 +17,7 @@ from pathlib import Path
 from mizan.data.snapshot import verify_snapshot
 from mizan.retrieval.bm25 import search
 from mizan.retrieval.bundle import build_bundle, load_items
+from mizan.retrieval.context import select_context
 from mizan.schemas import EvidenceItem
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,7 +34,7 @@ def _counts(items) -> str:
 
 def build_report(items: list[EvidenceItem], ticker: str, as_of: date, snapshot_label: str = "snapshot",
                  limit: int = 12, price_rows: int = 2, query: str | None = None, k: int = 5,
-                 compare_as_of: date | None = None) -> str:
+                 compare_as_of: date | None = None, budget_tokens: int | None = None) -> str:
     ticker = ticker.upper()
     bundle = build_bundle(items, ticker, as_of)
     mine = [i for i in items if i.ticker == ticker]
@@ -86,6 +87,15 @@ def build_report(items: list[EvidenceItem], ticker: str, as_of: date, snapshot_l
             out += [f"  {rank}. score {score:.2f}  {i.date}  {i.id}", f"      {_preview(i.text)}"]
         if not hits:
             out.append("  no item shares a word with the query")
+    if budget_tokens is not None:
+        sel = select_context(bundle, query, budget_tokens)
+        out += ["", f"Context for the model: budget {budget_tokens} tokens (estimate), used {sel.used_tokens}, "
+                    f"{len(sel.items)} of {len(bundle.items)} items" + (f", question {query!r}" if query else ", no question"),
+                f"  left out: {', '.join(f'{n} {t}' for t, n in sel.dropped.items()) or 'nothing'}"]
+        for i in sel.items:
+            if i.type != "price":
+                out.append(f"  {i.date}  {i.type:<17} {i.id}")
+        out.append(f"  (+ {sum(i.type == 'price' for i in sel.items)} price items)")
     return "\n".join(out)
 
 
@@ -97,6 +107,7 @@ def main(argv=None) -> int:
     p.add_argument("--compare-as-of", dest="compare_as_of", type=date.fromisoformat)
     p.add_argument("--query")
     p.add_argument("--k", type=int, default=5)
+    p.add_argument("--budget", type=int, help="also show the items a model with this many tokens of room would get")
     p.add_argument("--limit", type=int, default=12, help="non-price items to show")
     p.add_argument("--snapshots-dir", type=Path, default=ROOT / "data" / "snapshots")
     args = p.parse_args(argv)
@@ -112,7 +123,8 @@ def main(argv=None) -> int:
 
     items = load_items(folder / "items.jsonl")
     print(build_report(items, args.ticker, args.as_of, f"snapshot {folder.name}, verified against its manifest",
-                       limit=args.limit, query=args.query, k=args.k, compare_as_of=args.compare_as_of))
+                       limit=args.limit, query=args.query, k=args.k, compare_as_of=args.compare_as_of,
+                       budget_tokens=args.budget))
     return 0
 
 
