@@ -26,16 +26,21 @@ exposed as an HTTP API built with FastAPI. SBP/macro data is deferred until afte
 | 5 | `GET /tickers/{ticker}/prices?start=&end=` | cached daily OHLCV rows | 404 unknown ticker; 503 with message if prices not cached |
 | 6 | `GET /model/health` | whether the Ollama endpoint is reachable and which model is loaded | 503 if unreachable |
 | 7 | `POST /model/test` (optional; **built 2026-10-16**, tested with a fake model, not yet run against the real model) | one schema-valid structured response from the local model | 503 if unreachable or model not pulled; 502 if output fails schema after one retry |
-| 8 | `POST /ask` (**proposed, not built**) | answer with claims citing evidence ids, plus the evidence used | 404 unknown ticker; 422 bad input; 503 model not reachable; 502 model output invalid after retries |
+| 8 | `POST /ask` (**built 2026-10-16**, tested with a fake model, not yet run against the real model) | answer with claims citing evidence ids, plus the evidence used | 404 unknown ticker; 422 bad input; 503 snapshot not usable, model not reachable or not pulled; 502 model output invalid or citing evidence it was not shown, after one retry |
 
 1-3 are the minimum for a connected demo. 6 shows the local model deployment through the same API.
 
-## POST /ask (proposed contract)
-**This is a proposal, not built and not agreed.** It needs agreement with Isam and the Flutter side before any code is written.
+## POST /ask (contract)
+**Built 2026-10-16** (`mizan/llm/ask.py`, `api/main.py`; decision D13), at Shahzeb's request. Tested with `FakeLLM` only; not yet run
+against the real model. Agreement with Isam: [to confirm]. Agreement with the Flutter side: [to confirm]. Field-by-field guide:
+`docs/api-guide.md`.
 
-- Request: `{ticker, as_of, question}`.
-- Response: `{answer, claims: [{text, evidence_ids}], evidence: [EvidenceItem], model, timings_ms: {retrieval, model}}`.
-- Errors: 404 unknown ticker; 422 bad input; 503 model not reachable; 502 model output invalid after retries.
+- Request: `{ticker, as_of, question}`; `as_of` optional (default: the newest date in the snapshot); `question` 1 to 500 characters.
+- Response: `{answer, claims: [{text, evidence_ids}], evidence: [EvidenceItem], model, timings_ms: {retrieval, model}}`, plus
+  `ticker`, `as_of` (the date used), `cited_ids`, `insufficient_evidence`, `tokens_per_second`, `prompt_tokens`, `completion_tokens`,
+  `context: {budget_tokens, used_tokens, dropped}` and `attempts`.
+- Errors: 404 unknown ticker; 422 bad input; 503 snapshot not usable, model not reachable or not pulled; 502 model output not
+  schema-valid, or citing evidence it was not shown, after one retry (the message names the rejected ids).
 - Rules:
   - every cited id must appear in `evidence`; a cited id that is not in the bundle is rejected;
   - `evidence` respects no-look-ahead (date <= `as_of`) and ticker isolation;
@@ -46,7 +51,8 @@ exposed as an HTTP API built with FastAPI. SBP/macro data is deferred until afte
 - `uvicorn api.main:app --host 0.0.0.0 --port 8000` (use `--reload` while developing).
 - Flutter desktop on the same machine calls `http://localhost:8000`; from another machine, use the backend's LAN IP.
 - Base URL lives in one config value on the Flutter side.
-- Flutter desktop apps are not subject to browser CORS; a Flutter web build would need CORS enabled in FastAPI.
+- Flutter desktop apps are not subject to browser CORS. For a Flutter web build, CORS is enabled (2026-10-16) for
+  `http://localhost` and `http://127.0.0.1` on any port, plus any origins in `MIZAN_CORS_ORIGINS`; GET and POST only.
   If the app is built for macOS, the app needs the network client entitlement to make HTTP calls.
 
 ## Tests (FastAPI `TestClient`, no network, no GPU)
@@ -55,6 +61,8 @@ exposed as an HTTP API built with FastAPI. SBP/macro data is deferred until afte
 - Other ticker's items absent (isolation).
 - Unknown ticker: 404 with message. Bad date: 422.
 - `/model/health` and `/model/test` with a fake model: success path, and an unreachable-model 503.
+- `/ask` with a fake model: grounded answer, corrective retry, rejected ids (502), insufficient evidence, no look-ahead and ticker
+  isolation checked on everything sent to the model, the token budget, 404, 422, 503. CORS preflights.
 
 ## Demo flow in the UI (shows failure cases, which the rubric rewards)
 1. Open the app; it shows backend status from `/health`.

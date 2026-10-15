@@ -157,6 +157,8 @@ confirm or correct those lines before the report.
 - **A wording correction:** the plan says the API returns "the existing Pydantic models". `mizan/schemas.py` defines frozen Python dataclasses,
   which FastAPI serializes directly; the contract (the six item fields, the three bundle fields) is unchanged.
 - **CORS:** not enabled; a Flutter desktop app is not subject to it. A Flutter web build would need it (api-plan.md).
+  **Changed 2026-10-16:** enabled for `http://localhost` and `http://127.0.0.1` on any port plus `MIZAN_CORS_ORIGINS`, GET and POST
+  only, for a Flutter web build served from localhost (at Shahzeb's request).
 - **Enforced by:** `api/`, `tests/test_api*.py` (TestClient, no network, no GPU), and the no-network test that fails if any endpoint opens a socket.
 
 ## D12. Development model on the Mac, target model on the GPU box (2026-10-15)
@@ -174,3 +176,33 @@ confirm or correct those lines before the report.
 - **Rule:** results from the 4B must be labelled with the model tag and never mixed with 8B results.
 - **Enforced by:** `api/config.py` settings only; nothing else in the code depends on the model name.
 - Agreement with Isam: [to confirm].
+
+## D13. POST /ask: a fixed evidence budget, and ungrounded answers are rejected (Shahzeb, 2026-10-16)
+- **Decision:**
+  - The model sees evidence chosen by `select_context` from the as-of bundle under a budget of **2500 estimated tokens**
+    (`MIZAN_ASK_BUDGET_TOKENS`). `ask()` receives a bundle built by `store.bundle(ticker, as_of)` and only narrows it, so no-look-ahead
+    and ticker isolation stay in the retrieval layer.
+  - **An answer that cites an evidence id the model was not shown is rejected.** So is one with no claims, or a claim with no id, unless
+    the model says the evidence is insufficient. The model gets one corrective retry naming the problem and the allowed ids; a second
+    failure raises `UngroundedAnswer` and the API answers 502 naming the rejected ids. Nothing is silently dropped or repaired, apart
+    from trimming spaces and square brackets around an id.
+- **Reasoning for 2500 (Claude Code, from the request):** the context is 4096 tokens (Shahzeb's measurement on the Mac, 2026-10-16, and
+  the `MIZAN_OLLAMA_NUM_CTX` default). The answer may use up to 512 (`num_predict`), leaving 3584 for the prompt; 2500 goes to evidence
+  and about 1,000 to the instructions, the item headers, the question (up to 500 characters) and the chat template. `select_context`
+  counts 3 characters per token, which is pessimistic for English text.
+- **Measured offline (2026-10-16, no model call):** for OGDC as of 2026-09-08 and the question "What did OGDC announce about its annual
+  results?", the selector shows 17 of 129 items (2469 estimated tokens; 92 price rows, 15 announcements and 5 report sections left out)
+  and the whole prompt is 8,823 characters: about 2,200 tokens at 4 characters per token, about 2,940 at 3. The real token count is
+  [to confirm on the real model] (`prompt_tokens` in the response).
+- **Known risk:** a corrective retry adds the first answer (up to 512 tokens) and a note listing the allowed ids. At the pessimistic 3
+  characters per token the retry prompt plus a 512-token answer can exceed 4096; at 4 it fits. What Ollama does when a prompt exceeds
+  `num_ctx` has not been checked [to confirm]. If it becomes a problem: lower the budget, or raise `MIZAN_OLLAMA_NUM_CTX`.
+- **Why reject rather than filter (Claude Code, from the request):** a cited id outside the evidence shown is either invented or comes
+  from outside knowledge; removing it would hide that and keep a claim with no support. The faithfulness component needs every claim to
+  point at evidence that was really given.
+- **What it does not check:** whether a claim's wording is supported by the item it cites, and whether numbers in the answer appear in
+  the evidence. The prompt asks for both; the code does not verify them (that belongs to the faithfulness layer, out of scope for the mid).
+- **Enforced by:** `mizan/llm/ask.py` (`grounding_problems`, `UngroundedAnswer`), `api/main.py` (`POST /ask`), `tests/test_ask.py` and
+  `tests/test_api_ask.py` (marker items dated after `as_of` or of another ticker never appear in any message sent to the fake model,
+  and citing them is rejected).
+- Tested with `FakeLLM` only; not yet run on the real model. Agreement with Isam: [to confirm].

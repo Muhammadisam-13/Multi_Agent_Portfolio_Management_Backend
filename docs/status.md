@@ -13,10 +13,13 @@ Nothing here is marked done unless it exists in the repo and is tested. Scope: `
   - **Built 2026-10-16:** the chat call with JSON-schema output (`OllamaClient.chat`, one retry on bad output) and endpoint 7
     `POST /model/test`. Tested with fakes only (fake HTTP session, `FakeLLM`); **not yet run against the real model**. An opt-in live
     test exists (`tests/test_llm_live.py`, `MIZAN_LIVE_OLLAMA=1`).
-  - **Not built:** `ask()` and `POST /ask` (proposed, see `docs/api-plan.md`) (added 2026-10-15).
+  - **Built 2026-10-16:** `ask()` (`mizan/llm/ask.py`) and endpoint 8 `POST /ask`: an answer over the as-of evidence, cut to a
+    2500-token budget, with every cited id checked against the evidence shown (one corrective retry, then 502; D13). CORS for a Flutter
+    web build on localhost. **Tested with `FakeLLM` only; `ask()` has not yet run on the real model.** 439 tests pass, 2 opt-in live
+    tests skipped (2026-10-16). Contract agreement with Isam and the Flutter side: [to confirm].
   - **Update 2026-10-15:** the Ollama client has now been checked once against a real Ollama (health check only, over the LAN, from
     Windows; D12): `/model/health` returned reachable true, model_available true, about 55 ms, with `qwen3:4b-instruct` on a MacBook M1.
-    The chat call (2026-10-16) has not been run against it yet, and there is no `/ask`. The default model tag `qwen3:8b` (the target on
+    The chat call and `/ask` (2026-10-16) have not been run against it yet. The default model tag `qwen3:8b` (the target on
     the GPU box) is still unverified.
   - **Not done by me:** the Flutter side (teammate), the model deployment itself (Isam), who owns the API (marked [confirm] in the plan).
   - The sections below describe the retrieval layer and were written before this change; the demo-item table still lists the terminal demo,
