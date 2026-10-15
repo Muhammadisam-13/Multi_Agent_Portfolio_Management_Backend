@@ -26,8 +26,21 @@ exposed as an HTTP API built with FastAPI. SBP/macro data is deferred until afte
 | 5 | `GET /tickers/{ticker}/prices?start=&end=` | cached daily OHLCV rows | 404 unknown ticker; 503 with message if prices not cached |
 | 6 | `GET /model/health` | whether the Ollama endpoint is reachable and which model is loaded | 503 if unreachable |
 | 7 | `POST /model/test` (optional) | one schema-valid structured response from the local model | 503 if unreachable; 502 if output fails schema after retries |
+| 8 | `POST /ask` (**proposed, not built**) | answer with claims citing evidence ids, plus the evidence used | 404 unknown ticker; 422 bad input; 503 model not reachable; 502 model output invalid after retries |
 
 1-3 are the minimum for a connected demo. 6 shows the local model deployment through the same API.
+
+## POST /ask (proposed contract)
+**This is a proposal, not built and not agreed.** It needs agreement with Isam and the Flutter side before any code is written.
+
+- Request: `{ticker, as_of, question}`.
+- Response: `{answer, claims: [{text, evidence_ids}], evidence: [EvidenceItem], model, timings_ms: {retrieval, model}}`.
+- Errors: 404 unknown ticker; 422 bad input; 503 model not reachable; 502 model output invalid after retries.
+- Rules:
+  - every cited id must appear in `evidence`; a cited id that is not in the bundle is rejected;
+  - `evidence` respects no-look-ahead (date <= `as_of`) and ticker isolation;
+  - context is chosen with `select_context` under a token budget;
+  - the API never fetches live.
 
 ## Running it
 - `uvicorn api.main:app --host 0.0.0.0 --port 8000` (use `--reload` while developing).
