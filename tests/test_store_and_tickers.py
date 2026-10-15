@@ -39,6 +39,13 @@ def test_get_by_id_and_counts(folder):
     assert store.item_count_for("aaa") == 4 and store.item_count_for("ZZZ") == 0
 
 
+def test_get_with_as_of_hides_later_items(folder):
+    store = SnapshotStore.load(folder)
+    assert store.get("AAA-ANN-2025-07-15", as_of=date(2025, 7, 15)) is not None            # dated exactly as_of: visible
+    assert store.get("AAA-ANN-2025-07-15", as_of=AS_OF) is None                              # dated later: not found
+    assert store.get("AAA-ANN-2025-07-15") is not None                                       # no as_of: no filter
+
+
 def test_missing_snapshot_is_a_readable_error(tmp_path):
     with pytest.raises(SnapshotError, match="missing"):
         SnapshotStore.load(tmp_path / "nope")

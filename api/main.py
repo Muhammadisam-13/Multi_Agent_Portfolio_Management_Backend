@@ -13,12 +13,16 @@ from fastapi.responses import JSONResponse
 from api import __version__
 from api.config import Settings
 from api.models import Health, SnapshotSummary, TickerOut
+from mizan.data.prices import PriceRow, cached_price_rows
 from mizan.data.tickers import TickerInfo, load_tickers
+from mizan.fetcher.errors import CacheMiss
+from mizan.llm import LLM, LLMUnavailable, ModelHealth
+from mizan.llm.ollama import OllamaClient
 from mizan.retrieval.store import SnapshotError, SnapshotStore, resolve_snapshot_folder
-from mizan.schemas import EvidenceBundle
+from mizan.schemas import EvidenceBundle, EvidenceItem
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, llm: LLM | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     app = FastAPI(
         title="Mizan retrieval API",
@@ -26,6 +30,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description="Evidence bundles for PSX tickers, as of a date. Serves a frozen snapshot; never fetches live.",
     )
     app.state.settings = settings
+    app.state.llm = llm or OllamaClient(settings.ollama_url, settings.ollama_model)    # no request is made until /model/health is called
 
     # Both are loaded once at startup. A failure does not stop the server: /health reports it and the endpoints that
     # need the data answer 503 with the reason, so the UI can show it.
@@ -98,6 +103,45 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ) -> EvidenceBundle:
         """The ticker's evidence dated on or before `as_of` (plus MACRO items). A known ticker with no data gives an empty list."""
         return store.bundle(ticker, as_of or store.latest_date() or date.today())
+
+    # --- 4. one evidence item -----------------------------------------------------------
+    @app.get("/evidence/{item_id}", response_model=EvidenceItem, tags=["evidence"])
+    def evidence(
+        item_id: str,
+        as_of: date | None = Query(None, description="YYYY-MM-DD. An item dated after it is treated as not found."),
+        store: SnapshotStore = Depends(get_store),
+    ) -> EvidenceItem:
+        item = store.get(item_id, as_of)
+        if item is None:
+            visible = f" visible as of {as_of}" if as_of else ""
+            raise HTTPException(404, f"No evidence item '{item_id}'{visible} in snapshot '{store.name}'.")
+        return item
+
+    # --- 5. cached prices -----------------------------------------------------------------
+    @app.get("/tickers/{ticker}/prices", response_model=list[PriceRow], tags=["evidence"])
+    def prices(
+        ticker: str = Depends(known_ticker),
+        start: date | None = Query(None, description="YYYY-MM-DD. Default: 90 days before `end`."),
+        end: date | None = Query(None, description="YYYY-MM-DD. Default: the newest cached date."),
+        as_of: date | None = Query(None, description="YYYY-MM-DD. Caps `end`: later prices are never returned."),
+    ) -> list[PriceRow]:
+        """Daily OHLCV rows from the local price cache, oldest first."""
+        try:
+            return cached_price_rows(settings.cache_dir, ticker, start, end, as_of)
+        except CacheMiss:
+            raise HTTPException(503, f"Prices for {ticker} are not cached on this machine, and the API never fetches live. "
+                                     f"Fetch them once with the snapshot builder (python -m mizan.data.build_snapshot ... --live), then retry.")
+        except ValueError as exc:
+            raise HTTPException(422, f"Invalid request: {exc}.")
+
+    # --- 6. model health --------------------------------------------------------------------
+    @app.get("/model/health", response_model=ModelHealth, tags=["model"])
+    def model_health(request: Request) -> ModelHealth:
+        """Whether the Ollama server answers, the configured model is pulled and loaded, its quantization and its VRAM use."""
+        try:
+            return request.app.state.llm.health()
+        except LLMUnavailable as exc:
+            raise HTTPException(503, str(exc))
 
     return app
 

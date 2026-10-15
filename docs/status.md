@@ -6,8 +6,16 @@ Nothing here is marked done unless it exists in the repo and is tested. Scope: `
 ## Scope change (evening of 2026-10-15; decisions D10 and D11)
 - The Flutter UI must be connected to the backend for the mid, so a **FastAPI backend (`api/`) is now required**. SBP/macro is **deferred until
   after the mid**. PSX retrieval is reported done. Plan: `docs/api-plan.md`.
-- **API status: being built tonight** (endpoints 1-3 first, then 4-6; endpoint 7 `POST /model/test` is optional). The sections below describe
-  the state before this change and will be updated as endpoints land; until then nothing in this file claims an API.
+- **API status (2026-10-15, night): endpoints 1-6 of `docs/api-plan.md` are built and tested** in `api/` (38 TestClient tests, 313 tests in total pass).
+  Checked once over HTTP with a real uvicorn server against the real snapshot and caches. Guide for the Flutter side: `docs/api-guide.md`.
+  - `GET /health`, `/tickers`, `/tickers/{ticker}/bundle`, `/evidence/{id}`, `/tickers/{ticker}/prices`, `/model/health`.
+  - No request fetches from PSX (a test fails if any endpoint talks to a non-local host).
+  - **Not built:** endpoint 7 `POST /model/test` (optional in the plan).
+  - **Not verified:** the Ollama client has only been run against a fake server and against nothing listening (a clean 503). It has not
+    seen a real Ollama here, so the first run on the GPU box is the real test; the default model tag `qwen3:8b` is unverified.
+  - **Not done by me:** the Flutter side (teammate), the model deployment itself (Isam), who owns the API (marked [confirm] in the plan).
+  - The sections below describe the retrieval layer and were written before this change; the demo-item table still lists the terminal demo,
+    which remains a fallback. The UI demo flow is in `docs/api-plan.md`.
 - Still to confirm: who owns the API; the Flutter teammate's name (both marked [confirm] in the plan).
 - Note on the working copy: uncommitted edits to `docs/context.md`, `docs/mid-and-next-plan.md` and `docs/retrieval-plan.md` (the new plan wording)
   are untouched; `docs/retrieval-plan.md` in the working copy no longer holds the status tables committed earlier (they are in git history).

@@ -17,7 +17,7 @@ and prices_to_items() are pure so they can be tested offline.
 
 import json
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -212,3 +212,42 @@ class PriceLoader:
         history = self.load_history(ticker, refresh=refresh)
         df = history.df
         return validate_prices(df[(df["date"] >= start) & (df["date"] <= end)], ticker.upper(), start, end)
+
+
+# --- reading cached prices (what the API serves; never fetches) -----------------------
+
+@dataclass(frozen=True)
+class PriceRow:
+    date: date
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int | None
+    is_anomaly: bool              # psxdata flagged the row as inconsistent; kept, not dropped
+
+
+def cached_price_rows(cache_dir, ticker: str, start: date | None = None, end: date | None = None,
+                      as_of: date | None = None, default_days: int = 90) -> list[PriceRow]:
+    """Daily rows from the local price cache, oldest first. Never touches the network.
+
+    end defaults to the newest cached date and start to default_days before end. as_of caps end, so a caller that
+    works "as of" a date cannot see later prices (no look-ahead). Raises CacheMiss if the ticker has no cached
+    prices and ValueError if start is after end.
+    """
+    cached = PriceCache(cache_dir).get(ticker.upper())
+    if cached is None:
+        raise CacheMiss(f"{ticker.upper()}: no cached prices")
+    df, _ = cached
+    if df.empty:
+        return []
+    end = end or df["date"].max()
+    if as_of is not None:
+        end = min(end, as_of)
+    start = start or end - timedelta(days=default_days)
+    if start > end:
+        raise ValueError(f"start {start} is after end {end}")
+    part = df[(df["date"] >= start) & (df["date"] <= end)].sort_values("date")
+    return [PriceRow(r.date, float(r.open), float(r.high), float(r.low), float(r.close),
+                     None if pd.isna(r.volume) else int(r.volume), bool(r.is_anomaly))
+            for r in part.itertuples(index=False)]

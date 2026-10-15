@@ -55,8 +55,10 @@ class SnapshotStore:
         """The ticker's items and MACRO items dated on or before as_of (rules 1 and 2)."""
         return build_bundle(self.items, ticker, as_of)
 
-    def get(self, item_id: str) -> EvidenceItem | None:
-        return self._by_id.get(item_id)
+    def get(self, item_id: str, as_of: date | None = None) -> EvidenceItem | None:
+        """One item by id. With as_of, an item dated after it counts as not found (no look-ahead)."""
+        item = self._by_id.get(item_id)
+        return item if item is not None and (as_of is None or item.date <= as_of) else None
 
     def latest_date(self) -> date | None:
         return max((i.date for i in self.items), default=None)
