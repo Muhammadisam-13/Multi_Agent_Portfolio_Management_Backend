@@ -5,6 +5,7 @@ as_of date, so it can never return future or other-ticker evidence.
 """
 
 import re
+from typing import Callable
 
 from rank_bm25 import BM25Okapi
 
@@ -20,18 +21,20 @@ def tokenize(text: str) -> list[str]:
     return [t for t in TOKEN_RE.findall(text.lower()) if t not in STOPWORDS]
 
 
-def search(bundle: EvidenceBundle, query: str, k: int = 5) -> list[tuple[EvidenceItem, float]]:
+def search(bundle: EvidenceBundle, query: str, k: int = 5,
+           tokenizer: Callable[[str], list[str]] = tokenize) -> list[tuple[EvidenceItem, float]]:
     """Return up to k (item, score) pairs, best first.
 
     Items sharing no term with the query (score 0) are left out. Ties are
     broken by newer date first, then id, so results are deterministic.
+    The same tokenizer is used for the items and the query (lexical.py supplies a normalizing one).
     """
     items = list(bundle.items)
-    query_tokens = tokenize(query)
+    query_tokens = tokenizer(query)
     if not items or not query_tokens:
         return []
 
-    bm25 = BM25Okapi([tokenize(it.text) for it in items])
+    bm25 = BM25Okapi([tokenizer(it.text) for it in items])
     scores = bm25.get_scores(query_tokens)
 
     ranked = sorted(

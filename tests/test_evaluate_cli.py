@@ -26,7 +26,7 @@ def test_report_is_written_once_and_left_alone_when_scores_do_not_change(snap, t
     monkeypatch.setattr("mizan.retrieval.evaluate.ROOT", tmp_path)
     args = ["--snapshot", str(snap), "--gold", str(FIXTURES / "gold_queries.json"), "--write-report"]
     assert main(args) == 0 and "wrote" in capsys.readouterr().out
-    report = tmp_path / "reports" / "bm25_gold_t1.json"
+    report = tmp_path / "reports" / "bm25_gold_queries_t1.json"
     first = report.read_text(encoding="utf-8")
     assert json.loads(first)["snapshot"] == "t1"
     assert main(args) == 0 and "unchanged" in capsys.readouterr().out
@@ -64,3 +64,16 @@ def test_scores_are_grouped_by_difficulty_when_the_gold_file_has_labels(snap, tm
     assert main(["--snapshot", str(snap), "--gold", str(labelled)]) == 0
     out = capsys.readouterr().out
     assert "easy     3 queries   recall@5 = 1.00" in out and "hard     7 queries" in out
+
+
+def test_normalized_retriever_can_be_chosen_and_names_its_own_report(snap, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("mizan.retrieval.evaluate.ROOT", tmp_path)
+    args = ["--snapshot", str(snap), "--gold", str(FIXTURES / "gold_queries.json"), "--retriever", "bm25-norm", "--write-report"]
+    assert main(args) == 0
+    assert capsys.readouterr().out.startswith("bm25-norm on snapshot t1")
+    assert json.loads((tmp_path / "reports" / "bm25-norm_gold_queries_t1.json").read_text(encoding="utf-8"))["retriever"].startswith("bm25-norm")
+
+
+def test_unknown_retriever_is_rejected(snap):
+    with pytest.raises(SystemExit):
+        main(["--snapshot", str(snap), "--gold", str(FIXTURES / "gold_queries.json"), "--retriever", "magic"])
