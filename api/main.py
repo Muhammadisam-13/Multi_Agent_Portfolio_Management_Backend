@@ -12,12 +12,13 @@ from fastapi.responses import JSONResponse
 
 from api import __version__
 from api.config import Settings
-from api.models import Health, SnapshotSummary, TickerOut
+from api.models import Health, ModelTest, ModelTimings, SnapshotSummary, TickerOut
 from mizan.data.prices import PriceRow, cached_price_rows
 from mizan.data.tickers import TickerInfo, load_tickers
 from mizan.fetcher.errors import CacheMiss
-from mizan.llm import LLM, LLMUnavailable, ModelHealth
+from mizan.llm import LLM, BadOutput, LLMUnavailable, ModelHealth, ModelMissing
 from mizan.llm.ollama import OllamaClient
+from mizan.llm.selftest import run_self_test
 from mizan.retrieval.store import SnapshotError, SnapshotStore, resolve_snapshot_folder
 from mizan.schemas import EvidenceBundle, EvidenceItem
 
@@ -144,6 +145,22 @@ def create_app(settings: Settings | None = None, llm: LLM | None = None) -> Fast
             return request.app.state.llm.health()
         except LLMUnavailable as exc:
             raise HTTPException(503, str(exc))
+
+    # --- 7. one structured model response -----------------------------------------------------
+    @app.post("/model/test", response_model=ModelTest, tags=["model"])
+    def model_test(request: Request) -> ModelTest:
+        """Sends one fixed small prompt and returns the model's schema-checked JSON reply with its timings.
+        503: server unreachable or model not pulled. 502: no schema-valid reply after one retry."""
+        try:
+            result = run_self_test(request.app.state.llm)
+        except (ModelMissing, LLMUnavailable) as exc:
+            raise HTTPException(503, str(exc))
+        except BadOutput as exc:
+            raise HTTPException(502, str(exc))
+        return ModelTest(model=result.model, parsed=result.parsed, text=result.text,
+                         timings_ms=ModelTimings(total=result.total_ms, load=result.load_ms),
+                         tokens_per_second=result.tokens_per_second, prompt_tokens=result.prompt_tokens,
+                         completion_tokens=result.completion_tokens)
 
     return app
 

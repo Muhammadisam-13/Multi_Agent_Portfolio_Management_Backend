@@ -22,6 +22,21 @@ class Health(BaseModel):
     tickers_error: str | None
 
 
+class ModelTimings(BaseModel):
+    total: float | None                    # server-side ms for the whole call, including loading the model
+    load: float | None                     # part of total spent loading the model
+
+
+class ModelTest(BaseModel):
+    model: str                             # the model that answered, as the server names it
+    parsed: dict                           # the reply as JSON, checked against the schema: {"status": "ok", "note": "..."}
+    text: str                              # the raw reply text (any <think> block removed)
+    timings_ms: ModelTimings
+    tokens_per_second: float | None        # from the server's own counts; None if it did not report them
+    prompt_tokens: int | None
+    completion_tokens: int | None
+
+
 class TickerOut(BaseModel):
     ticker: str
     company_name: str
