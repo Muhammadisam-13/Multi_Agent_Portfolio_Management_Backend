@@ -30,7 +30,9 @@ def create_app(settings: Settings | None = None, llm: LLM | None = None) -> Fast
         description="Evidence bundles for PSX tickers, as of a date. Serves a frozen snapshot; never fetches live.",
     )
     app.state.settings = settings
-    app.state.llm = llm or OllamaClient(settings.ollama_url, settings.ollama_model)    # no request is made until /model/health is called
+    # no request is made until a /model/... endpoint is called
+    app.state.llm = llm or OllamaClient(settings.ollama_url, settings.ollama_model, chat_timeout_s=settings.ollama_timeout_s,
+                                        num_ctx=settings.ollama_num_ctx, seed=settings.ollama_seed)
 
     # Both are loaded once at startup. A failure does not stop the server: /health reports it and the endpoints that
     # need the data answer 503 with the reason, so the UI can show it.
