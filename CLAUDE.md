@@ -16,6 +16,10 @@ Mid plan: @docs/mid-and-next-plan.md. Honest status: @docs/status.md.
    desktop app can call it. **Required for the mid** (the UI must be connected to the backend).
 3. **Local model deployment:** Qwen3-8B via Ollama on the GPU box (Q4_K_M), reached only through the `LLM` interface
    (`mizan/llm/`), visible through the API (`/model/health`).
+4. **Model calls and POST /ask (proposed):** a chat call with JSON-schema structured output behind the existing `LLM` interface
+   (`OllamaClient` and `FakeLLM`), and a `POST /ask` endpoint that answers a question over an as-of evidence bundle and rejects any
+   cited evidence id that is not in that bundle. Owner: Shahzeb. Agreement with Isam: [to confirm]. Tests use `FakeLLM` only; agents,
+   debate and the faithfulness layer stay out of scope.
 Not in scope before the mid: SBP/macro data (moved to after the mid), agents/debate, faithfulness layer.
 The Flutter side and the mid report belong to teammates; the API owner is still to be confirmed (api-plan.md).
 If a task needs something outside this scope, ask first.
