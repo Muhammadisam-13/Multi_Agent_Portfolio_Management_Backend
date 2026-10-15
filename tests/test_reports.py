@@ -135,9 +135,9 @@ def test_contents_page_does_not_fool_the_zone_search():
     assert narrative_zone(pages) == (10, 58)
 
 
-def test_zone_without_any_heading_covers_the_document_after_the_front_matter():
-    assert narrative_zone(["x"] * 100) == (6, 99)
-    assert narrative_zone(["x"] * 30) == (2, 29)
+def test_zone_without_any_heading_or_contents_covers_the_whole_document():
+    assert narrative_zone(["x"] * 100) == (0, 99)
+    assert narrative_zone(["x"] * 30) == (0, 29)
     assert narrative_zone(["x"]) == (0, 0)
     assert narrative_zone([]) == (0, -1)
 
@@ -152,4 +152,22 @@ def test_a_page_opening_with_a_financial_statement_ends_the_zone(heading):
 
 def test_analysis_pages_inside_the_narrative_do_not_end_the_zone():
     pages = ["cover", "contents", "Chairman's Review. text"] + ["narrative"] * 5 + ["ANALYSIS OF STATEMENT OF FINANCIAL POSITION PKR 2021"] + ["narrative"] * 5
+    assert narrative_zone(pages)[1] == len(pages) - 1
+
+
+def test_short_contents_page_is_skipped_too():
+    pages = ["cover", "CONTENTS 07 03 Company Information 04 Directors' Review 09 Condensed Interim Financial Statements",
+             "Directors' Review for the quarter. The company performed well."] + ["narrative"] * 6 +             ["Condensed Interim Statement of Financial Position As at March 31 123 456"] + ["notes"] * 4
+    assert narrative_zone(pages) == (2, 8)
+
+
+def test_a_running_header_before_the_statement_heading_still_ends_the_zone():
+    pages = ["cover", "contents", "Directors' Report text"] + ["narrative"] * 8 +             ["Nine Monthly Report 2025-26 17 Condensed Interim Statement of Financial Position As at March 31"] + ["notes"] * 4
+    assert narrative_zone(pages) == (2, 10)
+
+
+@pytest.mark.parametrize("heading", ["HORIZONTAL AND VERTICAL ANALYSIS OF STATEMENT OF PROFIT OR LOSS",
+                                     "Summary of statement of cash flows", "Financial ratios: statement of financial position"])
+def test_analysis_sections_do_not_end_the_zone(heading):
+    pages = ["cover", "contents", "Directors' Report text"] + ["narrative"] * 5 + [heading] + ["narrative"] * 5
     assert narrative_zone(pages)[1] == len(pages) - 1

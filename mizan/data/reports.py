@@ -104,26 +104,37 @@ REVIEW_HEADING = re.compile(
 AUDITOR_REPORT = re.compile(r"independent auditor|auditors['’] report", re.IGNORECASE)
 
 
-# a page that OPENS with a financial statement heading is where the narrative has ended
+# A page that OPENS with a financial statement heading is where the narrative has ended. A short running header
+# ("Nine Monthly Report 2025-26 17 ...") may come first. Pages whose heading says "analysis", "ratios", "summary" or
+# "highlights" ("Analysis of statement of financial position") are part of the narrative, not a statement.
 FINANCIAL_STATEMENT_TOP = re.compile(
-    r"^\W*(?:(?:un)?consolidated\s+)?(?:condensed\s+)?(?:interim\s+)?"
+    r"^.{0,70}?(?:(?:un)?consolidated\s+)?(?:condensed\s+)?(?:interim\s+)?"
     r"(?:statements?\s+of\s+(?:financial position|profit|comprehensive income|cash flows|changes in equity)|notes to the)",
     re.IGNORECASE)
+ANALYSIS_HEADING = re.compile(r"\banalys[ie]s\b|\bratios?\b|\bsummary\b|\bhighlights\b", re.IGNORECASE)
+CONTENTS = re.compile(r"\bcontents?\b", re.IGNORECASE)
+
+
+def _is_statement_page(text: str) -> bool:
+    head = text[:200]
+    return bool(FINANCIAL_STATEMENT_TOP.search(head)) and not ANALYSIS_HEADING.search(head)
 
 
 def narrative_zone(pages: list[str]) -> tuple[int, int]:
-    """(first, last) 0-based page indexes to search: from the first review/report heading to the auditor's report.
+    """(first, last) 0-based page indexes to search: from the first review/report heading to the end of the narrative.
 
     A contents page lists "Chairman's Review ... Independent Auditor's Report" and would fool both searches, so
-    the first pages are skipped (6 in a long report, 2 in a medium one) and the auditor's report must come a
+    everything up to the last contents page (found in the first 12 pages) is skipped. The narrative ends at the
+    auditor's report or at the first page that opens with a financial statement heading, which must come a
     sensible distance after the start (a tenth of the document, at least 1 page).
     """
     n = len(pages)
-    skip = 6 if n >= 80 else 2 if n >= 12 else 0
-    start = next((i for i in range(skip, n) if REVIEW_HEADING.search(pages[i][:400])), min(skip, max(n - 1, 0)))
+    toc_end = max((i for i in range(min(12, n)) if CONTENTS.search(pages[i][:100])), default=-1)
+    first = toc_end + 1
+    start = next((i for i in range(first, n) if REVIEW_HEADING.search(pages[i][:400])), min(first, max(n - 1, 0)))
     min_end = start + max(1, n // 10)
-    end = next((i for i in range(min_end, n) if AUDITOR_REPORT.search(pages[i][:600])
-                or FINANCIAL_STATEMENT_TOP.search(pages[i][:150])), n)
+    end = next((i for i in range(min_end, n)
+                if AUDITOR_REPORT.search(pages[i][:600]) or _is_statement_page(pages[i])), n)
     return start, end - 1
 
 
