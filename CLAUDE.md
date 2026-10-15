@@ -42,8 +42,8 @@ If a task needs something outside this scope, ask first.
      (Isam, 2026-10-13): proceed with low-volume automated retrieval while checking with the supervisor,
      and email PSX if the supervisor says it is needed. Keep this note in `docs/` and the report.
    - There is no manual PDF drop-folder path. Remove any such code, config and docs if you find them.
-   - **Announcements list (dps.psx.com.pk), team decision 2026-10-15 (D7, supersedes D2): a session-imitating fetcher, built after
-     the mid** behind the same `fetcher` interface. Limits: load the page as a browser would, read the request token the page
+   - **Announcements list (dps.psx.com.pk), team decision 2026-10-15 (D7, supersedes D2): a session-imitating fetcher, built on
+     2026-10-15** (`mizan/fetcher/announcements.py`) behind the same `fetcher` interface. Limits: load the page as a browser would, read the request token the page
      provides and send it with the list request using the headers the page's own script uses; use Playwright only if the token is
      dynamic JavaScript. Same guardrails as above. **Never solve or bypass reCAPTCHA or any CAPTCHA, and never use proxy or
      anti-bot-bypass services; if the page requires that, stop and record it in `docs/`.**
@@ -59,7 +59,7 @@ If a task needs something outside this scope, ask first.
 ```
 mizan/
   schemas.py
-  fetcher/     # automated PSX fetchers (rate-limited, cached, can be switched off); announcements-list fetcher comes after the mid
+  fetcher/     # automated PSX fetchers (rate-limited, cached, can be switched off); announcements fetcher + dps_session (page token) are built
   llm/         # (planned, mid) LLM interface + Ollama client; a fake model for tests
   data/        # psxdata + SBP loaders, pdf_extract.py, normalizer.py
   retrieval/   # bundle.py (as-of filter), bm25.py, embeddings.py (only if needed)

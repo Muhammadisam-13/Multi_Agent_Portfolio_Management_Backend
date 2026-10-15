@@ -101,3 +101,20 @@ Compliance facts to keep in the report:
   that, the work stops and the finding is recorded here.
 - Optional news via Tavily or similar (D8) is separate: it does not change PSX's access check or terms and is never a dependency of
   the core PSX data.
+
+## Announcements fetcher: what it does and what the first run showed (2026-10-15, decisions.md D7)
+- It loads `https://dps.psx.com.pk/announcements`, reads the token the page embeds (`window.__ps._k`), and sends it as `X-Req-Id`
+  with `X-Requested-With: XMLHttpRequest` and a Referer on `POST /announcements` (form fields type=C, symbol, query, count, offset,
+  date_from, date_to, page=annc), exactly as the page's own script does. The token is refreshed after 240 s and once after a refusal;
+  a second refusal stops the run.
+- PSX accepted our project-identifying User-Agent; no browser User-Agent was used, no cookies were set, no proxy was used.
+- The list request carries no CAPTCHA field. reCAPTCHA appears in the site script only on the portfolio register and login forms.
+- Volume of the first run: 6 list requests (one per ticker, window 2026-04-13 to 2026-10-12), 109 document downloads
+  (`/download/document/<id>.pdf`, plain GET with a Referer), a handful of token page loads, spaced 4 s apart; about 6 manual
+  probe requests while building. No refusal. Everything is cached under git-ignored `data/cache/`; nothing raw is committed.
+- Date filter: `date_from` is ignored unless `date_to` is sent too (the page always sends both); the fetcher always sends both.
+- Content found: company announcements with a title, date, time and a PDF, e.g. material information, board meetings, dividend
+  credits, discoveries and production starts, director changes, AGM notices, and the transmission of annual / quarterly reports (the
+  same document ids as the reports listed on financials.psx.com.pk, with reliable announcement dates).
+- OCR: 34 of 131 announcements are image-only PDFs. An OCR attempt (rapidocr-onnxruntime) failed because Windows Application Control
+  blocked a DLL on this laptop; it was uninstalled and the policy was not worked around.

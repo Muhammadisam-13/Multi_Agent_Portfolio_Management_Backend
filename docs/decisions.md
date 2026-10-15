@@ -66,9 +66,9 @@ confirm or correct those lines before the report.
   therefore not part of the mid.
 - **Enforced by:** `CLAUDE.md` (scope), `docs/retrieval-plan.md`, `docs/status.md`.
 
-## D7. Session-imitating fetcher for the PSX announcements list, after the mid (team, 2026-10-15) - supersedes D2
-- **Decision:** the team will imitate a browser session to fetch the dps.psx.com.pk announcements list. It is built **after the mid**,
-  behind the existing `fetcher` interface.
+## D7. Session-imitating fetcher for the PSX announcements list (team, 2026-10-15) - supersedes D2
+- **Decision:** the team will imitate a browser session to fetch the dps.psx.com.pk announcements list, behind the existing
+  `fetcher` interface. The plan said "after the mid"; Isam asked for it to be built now (2026-10-15).
 - **Limits (from the plan):**
   - Load the announcements page as a browser would, read whatever request token the page provides, and send it with the list request,
     with the headers the page's own script uses.
@@ -88,8 +88,22 @@ confirm or correct those lines before the report.
   agreement on the mid scope, D6).
 - **Implementation note for Claude Code:** implement only within these limits; if the page needs a CAPTCHA solution, a proxy or an
   anti-bot service, stop and report instead of working around it.
-- **Enforced by:** not built yet. Planned: `mizan/fetcher/` (new module behind the interface), `FetchConfig.live` default False,
-  cache under git-ignored `data/cache/`, tests that never hit PSX.
+- **Enforced by:** `mizan/fetcher/dps_session.py` (token, headers, one refresh, then stop with a message naming these limits),
+  `mizan/fetcher/announcements.py`, `FetchConfig.live` default False, cache under git-ignored `data/cache/`, 43 tests that never
+  hit PSX (fake sessions, generated PDFs, hand-written pages).
+- **What was checked before and during the build (2026-10-15):**
+  - the page's own script sets `$.ajaxSetup({headers: {"X-Req-Id": window.__ps._k}})`, so the token is the one "the page provides";
+    it is a plain variable in the HTML, so Playwright was not needed;
+  - the announcements list request has no CAPTCHA field, and reCAPTCHA appears in the site script only on the portfolio register
+    and login forms, so the stop condition was not triggered;
+  - PSX accepted our project User-Agent (no browser User-Agent was needed) and set no cookies;
+  - first live run: a handful of token page loads, 6 list requests (one per ticker) and 109 document downloads at 4 s intervals,
+    plus about 6 manual probe requests while building; no refusal.
+- **Known gap:** 34 of the 131 announcements fetched are image-only PDFs (no text layer), including many material-information
+  notices, board-meeting notices and dividend credits. They are kept as title-only items flagged "needs OCR". An OCR attempt with a
+  pip-installable CPU library (rapidocr-onnxruntime) failed on this laptop because Windows Application Control blocked one of its
+  DLLs; it was removed and not worked around. Options: OCR on another machine (the GPU box), a different engine such as Tesseract if
+  IT policy allows it, or accept title-only items and say so.
 
 ## D8. Tavily (or similar) is optional, for news only (Isam, 2026-10-15)
 - **Decision:** a search/extract API such as Tavily may be added as an **optional** source for the news layer, behind the `fetcher`

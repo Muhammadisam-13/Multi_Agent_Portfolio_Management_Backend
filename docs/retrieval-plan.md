@@ -2,8 +2,8 @@
 
 Goal: a tested retrieval layer that returns an as-of-dated `EvidenceBundle` for a ticker. No LLM involved.
 Overall plan, demo script and what follows the mid: `docs/mid-and-next-plan.md`. Honest, dated status: `docs/status.md`.
-Scope decision (D6, 2026-10-15): the mid (2026-10-16) shows this retrieval layer plus local model deployment; the PSX
-announcements-list fetcher (D7) and the news layer (D8) come after the mid.
+Scope decision (D6, 2026-10-15): the mid (2026-10-16) shows this retrieval layer plus local model deployment. The announcements
+fetcher (D7) was built on 2026-10-15, earlier than the plan said; the news layer (D8) is still optional and not built.
 
 ## Steps (in order, commit after each) and where each stands on 2026-10-15
 | # | Step | Status |
@@ -13,36 +13,46 @@ announcements-list fetcher (D7) and the news layer (D8) come after the mid.
 | 3 | `mizan/retrieval/bundle.py`: bundle for (ticker, as_of) = ticker or MACRO items with `date <= as_of` | Done |
 | 4 | Tests: no leakage, ticker isolation, empty-ticker case | Done |
 | 5 | `mizan/retrieval/bm25.py`: BM25 baseline (`rank_bm25`) | Done |
-| 6 | Gold set (~10 hand-labelled queries -> expected evidence IDs) and a test that logs recall@5 and MRR to a file | Partly: 10 queries over the fake fixtures, logged (recall@5 0.70, MRR 0.70). No gold set over real data yet. |
-| 7 | Measure bundle token sizes for the real data; decide whether search is needed or whole bundles fit in context | Not started |
-| 8 | Only if BM25 recall is insufficient: embeddings (check current small models, e.g. bge-m3, nomic-embed-text) and compare to BM25 | Undecided until step 6 has a real-data gold set |
-| 9 | `mizan/fetcher/`: automated PSX fetchers (rate limit, User-Agent, local cache, config switch to disable live fetching), tested against saved responses so the suite never hits PSX | Partly (see below) |
-| 10 | Loaders and normalizer (`mizan/data/`): psxdata prices, SBP macro, PDFs -> text, all producing `EvidenceItem` files in `data/snapshots/` | Partly (see below) |
+| 6 | Gold set (~10 hand-labelled queries -> expected evidence IDs) and a metrics log | **Done on real data**: `eval/gold_demo-v2.json`, 16 queries; BM25 recall@5 0.85, MRR 0.88 (easy 0.94, medium 0.96, hard 0.42). Labels were written after reading titles, so easy/medium are optimistic. |
+| 7 | Measure bundle token sizes for the real data; decide whether search is needed or whole bundles fit in context | **Done (estimates)**: bundles are 8k-24k tokens, so they do not fit a small window. Answer: a token-budgeted selection is needed (`select_context`). |
+| 8 | Embeddings, only if BM25 recall is insufficient | **Open decision.** BM25 is fine when the question shares words with the item and weak on paraphrases (hard queries 0.42). Embeddings (or stemming / query expansion) would target exactly that; not built. |
+| 9 | `mizan/fetcher/`: automated PSX fetchers (rate limit, User-Agent, local cache, live switch), tested against saved responses so the suite never hits PSX | **Done** for the results table and the announcements list with their PDFs (see below) |
+| 10 | Loaders and normalizer (`mizan/data/`): prices, macro, PDFs -> text, producing `EvidenceItem` files in `data/snapshots/` | **Partly**: prices, results, announcements, report chunks and snapshot building are done; SBP macro is not |
 
-### Step 9 in parts
-- 9a. Financial results table (`www.psx.com.pk`, plain GET): **done**, tested with a fake session and a hand-written page; one live run on 2026-10-13.
-- 9b. Report PDFs from `financials.psx.com.pk` (annual and quarterly reports): not built. Reports are large (the OGDC annual report is
-  229 pages), so they need section selection and chunking into evidence items, and scanned pages flagged for OCR.
-- 9c. **After the mid:** announcements-list fetcher for dps.psx.com.pk, session-imitating with the limits in D7 (no CAPTCHA solving
-  or bypass, no proxy or anti-bot services; stop and record if the page needs that), behind the `fetcher` interface, cached, switchable.
-- 9d. **After the mid, optional:** news via Tavily or similar (D8), news only, date-filtered to `as_of`, cached with fetch dates.
+### What the retrieval layer retrieves today (snapshot `demo-v2`, 6 tickers, 2026-04-13 to 2026-10-12)
+| Item type | Source | Count | What an item is |
+|---|---|---|---|
+| `price` | psxdata (scrapes dps.psx.com.pk, sends PSX's request token) | 738 | one trading day of OHLCV for one ticker |
+| `financial_results` | www.psx.com.pk results table | 23 | one company filing: period, profit before/after tax, EPS, dividend text, AGM and book-closure dates |
+| `announcement` | dps.psx.com.pk announcements list (D7) + the linked PDF | 131 | title, date, time and the document's text (first 2,000 characters) |
+| `report_section` | annual / quarterly / half-yearly report PDFs | 63 | a narrative passage (about 1,800 characters) with its page number |
 
-### Step 10 in parts
-- psxdata prices: **done** (local cache, pinned version, validation, loud failure on a refused token; live fetch done 2026-10-13).
-- Results-table normalizer, snapshot writer, `verify_snapshot`, `build_snapshot` command: **done**; snapshot `demo-v1` manifest committed
-  (its contents stay local, decision D4).
-- PDF -> text: `extract_text` with scanned-page flagging is done and tested on generated PDFs; not yet connected to a fetcher or to chunking.
-- SBP macro (MACRO items): not started. Decide after the first demo whether it is needed.
+### Gaps in what is retrieved
+- 34 of the 131 announcements are image-only PDFs: kept as title-only items flagged "needs OCR". OCR could not be run on this laptop
+  (Windows Application Control blocked the library's DLL; not worked around).
+- Report chunks come from a keyword heuristic over the narrative pages; it keeps useful passages but also some climate-disclosure text.
+- Two of the 13 periodic reports are image-only (HUBC's and LUCK's March-quarter reports) and yield a single flagged item each.
+- No macro data (SBP) yet, so the real snapshot has no MACRO items.
+- No news layer (D8).
+- ENGRO: prices stop at 2025-01-03, excluded.
+
+### The commands (all run from the local snapshot or cache; live fetching needs `--live`)
+- `python -m mizan.fetcher.cli --source announcements --tickers OGDC --from 2026-04-13 --to 2026-10-12 [--live]`
+- `python -m mizan.data.build_snapshot --name demo-v2 --tickers OGDC LUCK HBL FFC HUBC SYS --start 2026-04-13 --end 2026-10-12 --announcements --reports`
+- `python -m mizan.retrieval.demo --snapshot demo-v2 --ticker OGDC --as-of 2026-09-08 [--compare-as-of D] [--query Q] [--budget N]`
+- `python -m mizan.retrieval.sizing --snapshot demo-v2 --as-of 2026-10-12`
+- `python -m mizan.retrieval.evaluate --snapshot demo-v2 --gold eval/gold_demo-v2.json`
 
 ## Mid demo (2026-10-16)
 Seven items, all runnable from cache and snapshots (live PSX calls are not on the critical path); the full list and the checks
 behind each are in `docs/mid-and-next-plan.md`. Retrieval covers items 1-4 and 6-7; item 5 is the local model.
 
-## After the mid (order from the plan)
-1. Announcements-list fetcher (9c).
-2. Finish the gold set and quality metrics (steps 6-8); embeddings only if BM25 is not enough.
-3. Evidence bundle -> agent turn with evidence-ID citations (thin end-to-end slice).
-4. Settle the faithfulness method from the new base paper.
+## After the mid / still open
+1. SBP macro items (needs an API key; decide whether the debate needs it).
+2. OCR for the image-only PDFs (another machine, or an engine IT allows).
+3. Decide embeddings vs stemming / query expansion for paraphrased questions (step 8), with a larger and harder gold set.
+4. Optional news via Tavily or similar (D8).
+5. Evidence bundle -> agent turn with evidence-ID citations (thin end-to-end slice); settle the faithfulness method.
 
 ## Done means
 `pytest` passes on the laptop (CPU only); leakage and isolation tests exist; gold-set metrics are logged to a file; the mid demo
