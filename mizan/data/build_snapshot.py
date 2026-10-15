@@ -59,9 +59,10 @@ def main(argv=None) -> int:
         from mizan.fetcher.announcements import AnnouncementsFetcher
         handler = None
         if args.reports:
-            from mizan.data.reports import chunk_items
-            handler = lambda row, path: chunk_items(row.symbol, row.doc_id, row.day, row.title, path,
-                                                    max_chunks=args.report_chunks)
+            from mizan.data.reports import chunk_items, is_periodic_report
+            handler = lambda row, path: (chunk_items(row.symbol, row.doc_id, row.day, row.title, path,
+                                                     max_chunks=args.report_chunks)
+                                         if is_periodic_report(row.title) else [])
         ann = AnnouncementsFetcher(config, args.start, args.end, long_document_handler=handler).fetch(tickers)
         items += ann.items
         meta["announcements_window"] = [args.start.isoformat(), args.end.isoformat()]

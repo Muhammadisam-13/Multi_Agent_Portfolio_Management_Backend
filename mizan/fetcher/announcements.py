@@ -169,7 +169,7 @@ class AnnouncementsFetcher:
     def __init__(self, config: FetchConfig, date_from: date, date_to: date,
                  client: PoliteClient | None = None, session: DpsSession | None = None,
                  cache: PageCache | None = None, pdf_cache: PdfCache | None = None,
-                 page_size: int = 50, max_pages: int = 6, max_pdf_pages: int = 8, max_text_chars: int = 4000,
+                 page_size: int = 50, max_pages: int = 6, max_pdf_pages: int = 8, max_text_chars: int = 2000,
                  long_document_handler: Callable[[AnnouncementRow, Path], list[EvidenceItem]] | None = None):
         if date_from > date_to:
             raise ValueError("date_from must not be after date_to")
@@ -201,7 +201,8 @@ class AnnouncementsFetcher:
                 if doc.status == "long" and self.long_document_handler is not None:
                     extra = self.long_document_handler(row, self.pdf_cache.path(row.doc_id))
                     items += extra
-                    warnings.append(f"{ticker}: report {row.doc_id} ({row.title[:50].strip()}): {len(extra)} narrative chunks")
+                    if extra:
+                        warnings.append(f"{ticker}: report {row.doc_id} ({row.title[:50].strip()}): {len(extra)} narrative chunks")
             if not rows:
                 warnings.append(f"{ticker}: no announcements between {self.date_from} and {self.date_to}")
             else:

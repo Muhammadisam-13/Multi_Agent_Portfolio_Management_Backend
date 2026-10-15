@@ -64,6 +64,14 @@ class Chunk:
     score: float
 
 
+PERIODIC_REPORT = re.compile(r"\b(annual|quarterly|half[- ]?yearly|interim|nine[- ]month)\s+report\b", re.IGNORECASE)
+
+
+def is_periodic_report(title: str) -> bool:
+    """True for announcements that transmit an annual / quarterly / half-yearly report (not results tables, AGM notices or slide decks)."""
+    return bool(PERIODIC_REPORT.search(title))
+
+
 def _digit_fraction(text: str) -> float:
     chars = [c for c in text if not c.isspace()]
     return sum(c.isdigit() for c in chars) / len(chars) if chars else 1.0
@@ -96,10 +104,26 @@ REVIEW_HEADING = re.compile(
 AUDITOR_REPORT = re.compile(r"independent auditor|auditors['’] report", re.IGNORECASE)
 
 
+# a page that OPENS with a financial statement heading is where the narrative has ended
+FINANCIAL_STATEMENT_TOP = re.compile(
+    r"^\W*(?:(?:un)?consolidated\s+)?(?:condensed\s+)?(?:interim\s+)?"
+    r"(?:statements?\s+of\s+(?:financial position|profit|comprehensive income|cash flows|changes in equity)|notes to the)",
+    re.IGNORECASE)
+
+
 def narrative_zone(pages: list[str]) -> tuple[int, int]:
-    """(first, last) 0-based page indexes to search: from the first review/report heading to the auditor's report."""
-    start = next((i for i, t in enumerate(pages) if REVIEW_HEADING.search(t[:400])), 0)
-    end = next((i for i, t in enumerate(pages) if i > start and AUDITOR_REPORT.search(t[:600])), len(pages))
+    """(first, last) 0-based page indexes to search: from the first review/report heading to the auditor's report.
+
+    A contents page lists "Chairman's Review ... Independent Auditor's Report" and would fool both searches, so
+    the first pages are skipped (6 in a long report, 2 in a medium one) and the auditor's report must come a
+    sensible distance after the start (a tenth of the document, at least 1 page).
+    """
+    n = len(pages)
+    skip = 6 if n >= 80 else 2 if n >= 12 else 0
+    start = next((i for i in range(skip, n) if REVIEW_HEADING.search(pages[i][:400])), min(skip, max(n - 1, 0)))
+    min_end = start + max(1, n // 10)
+    end = next((i for i in range(min_end, n) if AUDITOR_REPORT.search(pages[i][:600])
+                or FINANCIAL_STATEMENT_TOP.search(pages[i][:150])), n)
     return start, end - 1
 
 
