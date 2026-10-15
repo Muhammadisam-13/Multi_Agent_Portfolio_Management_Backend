@@ -9,7 +9,7 @@ Raw responses were kept in a scratch folder, not in the repo.
   the list with `POST /announcements` (form fields `type`, `symbol`, `query`, `count`, `offset`, `date_from`, `date_to`, `page=annc`)
   and expects an HTML fragment back. The page also loads Google reCAPTCHA.
 - **What we got:** a plain POST returned **404**; the same POST with an `X-Requested-With: XMLHttpRequest` header returned **403**.
-- **Decision (team, 2026-10-13):** we do **not** imitate a browser session, replay cookies or tokens, or try to get around the
+- **Decision (team, 2026-10-13), SUPERSEDED on 2026-10-15 by D7 (see the update at the end of this file):** we do **not** imitate a browser session, replay cookies or tokens, or try to get around the
   reCAPTCHA. Work on this endpoint has stopped. Announcement text comes from other sources (below) or is left out and listed as a limitation.
 - The fetcher stays behind an interface, with live fetching switchable off; tests, demos and evaluation run from cache and snapshots.
 
@@ -86,3 +86,18 @@ and the June year/half-year in July-September), each usually as an unconsolidate
 - Repeated postings (identical in every field except time) are dropped, keeping the earliest, and reported as a fetcher note: 6 across the whole page on 2026-10-13.
 - ENGRO prices (first live fetch, 2026-10-13): psxdata returns 2,039 rows from 2016-10-13 but they **stop at 2025-01-03**, so the ENGRO symbol has no recent trading. The results page lists Engro Holdings Limited; its current symbol has not been verified. ENGRO is excluded from snapshot demo-v1 until the team picks a symbol.
 - Other price fetches the same day: 2,466-2,479 rows each, newest 2026-10-13. psxdata flagged 0-4 rows per ticker as anomalies (OHLC inconsistent); flagged rows are kept and their item text says so.
+
+## Decision update (2026-10-15): session-imitating announcements fetcher (decisions.md D7)
+
+The team decided to build a fetcher for the dps.psx.com.pk announcements list that imitates a browser session, after the mid.
+Compliance facts to keep in the report:
+- PSX's Terms of Use restrict automated retrieval without written permission (section "Terms of Use" above). This decision knowingly
+  goes further than the 2026-10-13 decision to proceed with low-volume automated retrieval of public pages.
+- PSX has required a request token (`X-Req-Id`) on data requests since 2026-09-24. The fetcher will read the token the page provides and
+  send it with the headers the page's own script uses; psxdata already does the same for prices (decisions.md D3).
+- Limits: low volume, configurable rate limit, project-identifying User-Agent, download once and cache, live fetching can be switched
+  off, nothing raw committed. Playwright only if the token comes from dynamic JavaScript.
+- **Hard stop:** no solving or bypassing of reCAPTCHA or any CAPTCHA, no proxy or anti-bot-bypass services. If the list request needs
+  that, the work stops and the finding is recorded here.
+- Optional news via Tavily or similar (D8) is separate: it does not change PSX's access check or terms and is never a dependency of
+  the core PSX data.

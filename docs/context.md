@@ -15,8 +15,8 @@ news, central bank statements) as distinct, dated, citable evidence items with s
 | SBP EasyData | Pakistan macro numbers (policy rate, inflation, KIBOR, PKR). Needs an API key; verify its current docs before building. |
 | FRED (fredapi) | Optional global context; skip for now. |
 | PSX Data Services / Capital Stake | Paid/licensed; not used now. Mention as the production path. |
-| PSX filings (financial results table + report PDFs) | Main narrative source. **Fetched automatically** by the `fetcher` module (rate-limited, cached, switchable). The dps.psx.com.pk announcements list is **not used** (403 / reCAPTCHA; decision in docs/sources-and-compliance.md). Sources: www.psx.com.pk financial-announcements table and financials.psx.com.pk. |
-| News sites, SBP monetary policy statements | **No RSS feed found** (psx.com.pk/psx/news redirects to an HTML articles page; checked 2026-10-13). Other narrative sources: see docs/sources-and-compliance.md. Check each site's terms. |
+| PSX filings (financial results table + report PDFs) | Main narrative source. **Fetched automatically** by the `fetcher` module (rate-limited, cached, switchable). The dps.psx.com.pk announcements list is **not used yet** (404/403 on 2026-10-13); a session-imitating fetcher is planned after the mid (decisions.md D7). Sources: www.psx.com.pk financial-announcements table and financials.psx.com.pk. |
+| News sites, SBP monetary policy statements | **No RSS feed found** (psx.com.pk/psx/news redirects to an HTML articles page; checked 2026-10-13). Other narrative sources: see docs/sources-and-compliance.md. Check each site's terms. Optional later: Tavily or similar for news only (decisions.md D8). |
 
 ## Pipeline
 ```
@@ -24,7 +24,7 @@ psxdata / SBP EasyData / PSX announcements fetcher / news feeds -> local cache -
 ```
 The whole path is automatic. The fetcher is a swappable module with a config switch to disable live fetching, so tests and demos
 run from cache or snapshots. PDF extraction (PyMuPDF/pdfplumber) is the real work; some PSX documents are scanned and may need OCR.
-Do not try to get around the dps.psx.com.pk announcements block; see docs/sources-and-compliance.md. Expect page structures to change.
+The dps.psx.com.pk announcements list needs PSX's request token; its session-imitating fetcher (decisions.md D7, after the mid) has hard limits: never solve or bypass CAPTCHAs, no proxy or anti-bot services. Expect page structures to change.
 
 ## Compliance note (keep in the report)
 PSX's Terms of Use restrict automated retrieval without written permission. Team decision (Isam, 2026-10-13): proceed with
@@ -51,4 +51,4 @@ frozen into snapshots. Tickers and the as-of date are not chosen yet.
 - `stocks()` returns date, open, high, low, close, volume, is_anomaly, newest first. Whether prices are adjusted for splits/dividends is not yet checked.
 - `fundamentals()` is the financial-report filing list (symbol, year, type, period_ended, posting_date, posting_time, document), not ratios; it returned 0 rows outside reporting season.
 - psxdata itself requests dps.psx.com.pk, so the compliance note covers it too.
-- Announcements list: `POST /announcements` (fields type, symbol, query, count, offset, date_from, date_to, page=annc). A plain POST returned 404 and a POST with `X-Requested-With` returned 403; unresolved, pending the team's decision.
+- Announcements list: `POST /announcements` (fields type, symbol, query, count, offset, date_from, date_to, page=annc). A plain POST returned 404 and a POST with `X-Requested-With` returned 403; see decisions.md D7 (decided 2026-10-15, to be built after the mid).

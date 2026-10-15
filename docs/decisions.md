@@ -12,7 +12,8 @@ confirm or correct those lines before the report.
 - **Enforced by:** `mizan/fetcher/` (rate limit, project User-Agent, cache under git-ignored `data/cache/`, live fetching off by
   default), `.gitignore`.
 
-## D2. Do not get around the dps.psx.com.pk announcements block (Isam, 2026-10-13)
+## D2. Do not get around the dps.psx.com.pk announcements block (Isam, 2026-10-13) - SUPERSEDED by D7 (2026-10-15)
+- **Status:** superseded. Kept as history; the reasoning and evidence below are still accurate for 2026-10-13.
 - **Decision:** no browser-session imitation, no cookie/token replay, no reCAPTCHA workaround for the announcements list
   (`POST /announcements` returned 404 plain and 403 with an XHR header). Work on that endpoint stopped.
 - **Reasoning (team):** stated as the decision; see `sources-and-compliance.md` for the evidence.
@@ -33,8 +34,9 @@ confirm or correct those lines before the report.
 - **Reasoning (written by Claude Code from the session; team to confirm):** prices are needed for the debate layer and no other free
   source was found (PSX Data Services / Capital Stake are paid); with caching the volume is about one request per ticker; the token is
   served in PSX's public HTML pages and psxdata uses it the way the site's own pages do.
-- **Open point to raise with the supervisor:** D2 and D3 treat similar PSX access checks differently (D2 does not send a token for
-  the announcements list; D3 lets psxdata send one for prices). The team accepted this; the report should say so plainly.
+- **Open point (updated 2026-10-15):** the inconsistency between D2 and D3 was resolved by D7: the announcements-list fetcher will
+  also send the page's token, within limits. The report should say plainly that PSX requires the token on data requests (since
+  2026-09-24) and that we send it, for prices through psxdata and later for the announcements list.
 
 ## D4. Snapshots stay local; only manifests are committed (Isam, 2026-10-13)
 - **Decision:** snapshot contents (`items.jsonl`, `raw/`) are not committed because they contain PSX data; each snapshot's
@@ -48,3 +50,59 @@ confirm or correct those lines before the report.
 - **Decision:** OGDC, LUCK, HBL, FFC, HUBC, SYS, ENGRO.
 - **Status:** see `sources-and-compliance.md` ("Demo tickers in the results table") for which have usable filings and the open
   ENGRO question.
+
+## D6. Mid scope: retrieval layer and local model deployment (Isam, 2026-10-15, agreed with the supervisor)
+- **Decision:** the FYP-1 mid (2026-10-16) shows two things: the **retrieval layer** and **local model deployment**. Nothing else is
+  required for the mid.
+- **Who does what (from the plan):** Isam: retrieval (to completion) and local model deployment. One teammate: the mid report. One
+  teammate: the frontend-to-backend connection, after retrieval exists. Everyone commits their own work and can explain their own part.
+- **Mid demo (about 10 minutes, runnable from cache and snapshots, live PSX calls not on the critical path):** an as-of bundle for
+  1-2 tickers with items, dates, sources and stable IDs; the hard rules shown live (future item excluded, other tickers never
+  appear); failure cases shown honestly (fetch refused or live fetching off -> cache fallback with a clear message, scanned PDF flagged
+  for OCR, ticker with no data -> empty bundle); BM25 search with recall@k / MRR from the gold set if it exists (say so if it does not);
+  Ollama serving Qwen3-8B (Q4_K_M) returning schema-valid JSON with VRAM and latency noted; `pytest` run live; an honest status
+  section. Details: `docs/mid-and-next-plan.md`.
+- **Reasoning:** as recorded in the plan; no further reasoning was written down. Faithfulness evaluation, agents and the auditor are
+  therefore not part of the mid.
+- **Enforced by:** `CLAUDE.md` (scope), `docs/retrieval-plan.md`, `docs/status.md`.
+
+## D7. Session-imitating fetcher for the PSX announcements list, after the mid (team, 2026-10-15) - supersedes D2
+- **Decision:** the team will imitate a browser session to fetch the dps.psx.com.pk announcements list. It is built **after the mid**,
+  behind the existing `fetcher` interface.
+- **Limits (from the plan):**
+  - Load the announcements page as a browser would, read whatever request token the page provides, and send it with the list request,
+    with the headers the page's own script uses.
+  - If the token is produced by dynamic JavaScript, use a real browser automation tool (Playwright) instead of hand-rebuilding requests.
+  - Same guardrails as the other fetchers: low volume, configurable rate limit, project-identifying User-Agent, download once and
+    cache, a switch that disables live fetching, nothing raw committed to git.
+  - **Do not solve or bypass reCAPTCHA or any other CAPTCHA, and do not use proxy or anti-bot-bypass services. If the page requires
+    that, stop and record it** in `docs/decisions.md` and `docs/sources-and-compliance.md`.
+- **Reasoning:** the plan records this as a team decision without further reasoning. The facts behind it: PSX has required an
+  `X-Req-Id` token on data requests since 2026-09-24 (taken from `window.__ps._k` in PSX's HTML pages, per psxdata's source); on
+  2026-10-13 our plain POST to `/announcements` returned 404 and the same POST with an XHR header returned 403; D3 already accepts
+  sending the same token for prices through psxdata.
+- **Risks to state in the report (not hidden):** PSX's Terms of Use restrict automated retrieval without written permission
+  (`sources-and-compliance.md`), and this decision knowingly goes further than D1. The announcements page also loads Google
+  reCAPTCHA; whether the list request itself depends on a reCAPTCHA token is not known until it is tried, and the stop rule above
+  applies if it does. The supervisor's view of this specific decision is not recorded here (the plan records the supervisor's
+  agreement on the mid scope, D6).
+- **Implementation note for Claude Code:** implement only within these limits; if the page needs a CAPTCHA solution, a proxy or an
+  anti-bot service, stop and report instead of working around it.
+- **Enforced by:** not built yet. Planned: `mizan/fetcher/` (new module behind the interface), `FetchConfig.live` default False,
+  cache under git-ignored `data/cache/`, tests that never hit PSX.
+
+## D8. Tavily (or similar) is optional, for news only (Isam, 2026-10-15)
+- **Decision:** a search/extract API such as Tavily may be added as an **optional** source for the news layer, behind the `fetcher`
+  interface. It is not used for PSX announcements, and nothing in the core PSX data depends on it.
+- **What the plan says about Tavily (not verified by Claude Code; check before relying on it):** it offers Search, Extract (up to 20
+  URLs per call) and Crawl; the free tier is 1,000 credits per month (per its FAQ).
+- **Why not for PSX announcements:** it fetches from its own servers, so it does not remove PSX's access check or terms, and it is
+  unlikely to get a token-gated list.
+- **Conditions if used:**
+  - cache every result with its fetch date;
+  - keep only items whose publish date is on or before the as-of date (search results are not date-stable and can leak future content);
+  - check whether the API supports date filters;
+  - read each source site's terms.
+- **Reasoning (from the plan):** core PSX data must not depend on a third-party search API, both because the handbook caps the score
+  for over-reliance on ready-made APIs and tools, and because results must be reproducible.
+- **Enforced by:** not built yet.
