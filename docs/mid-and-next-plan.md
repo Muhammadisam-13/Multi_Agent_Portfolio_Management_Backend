@@ -1,41 +1,48 @@
 # Plan: FYP-1 Mid (2026-10-16) and what follows
 
-Decision (Isam, 2026-10-15, agreed with supervisor): the mid shows the **retrieval layer** and **local model deployment**. Nothing else is required for the mid.
+Updated 2026-10-15 (evening). The mid shows:
+1. **PSX retrieval layer** (reported done; verify against tests).
+2. **FastAPI backend connected to the Flutter UI** (required; without the UI connection marks are lost). See docs/api-plan.md.
+3. **Local model deployment** (Qwen3-8B via Ollama), reachable through the API.
+SBP/macro data is **deferred until after the mid**. Agents, debate and the faithfulness layer are shown as design and plan only.
 
 ## Who does what
-- Isam: retrieval layer (to completion) and local model deployment.
+- Isam: retrieval layer, backend API **[confirm API owner]**, local model deployment.
 - Teammate: mid report.
-- Teammate: frontend-to-backend connection (after retrieval exists).
+- Teammate: Flutter side of the frontend-to-backend connection.
 Everyone commits their own work; each person can explain their own part.
 
-## Mid demo (aim for ~10 minutes, all runnable from cache and snapshots; live PSX calls are not on the critical path)
-1. Retrieval: for 1-2 tickers, build an as-of bundle and show items, dates, source and stable IDs.
-2. Hard rules shown live: a future-dated item is excluded (no look-ahead); another ticker's items never appear (isolation).
-3. Failure cases shown honestly: fetch refused or live fetching switched off (falls back to cache, clear message); scanned PDF flagged for OCR; ticker with no data returns an empty bundle, not a crash.
-4. Search quality: BM25 over a bundle, with recall@k / MRR from the gold set if it exists by then (say so if it doesn't).
-5. Local model: Ollama serving Qwen3-8B (Q4_K_M) on the GPU box, one call that returns schema-valid JSON, with VRAM use and latency noted.
-6. Tests: run `pytest` live and show the log.
-7. Status slide/section: done, in progress, next, blocked (honest).
+## Mid demo (aim for ~10 minutes, all from cache and snapshots; live PSX calls are not on the critical path)
+1. Start the API; the Flutter app shows backend status.
+2. In the app: pick a ticker and a date; the evidence list from the as-of bundle appears (date, type, source, ID).
+3. Hard rules visible in the UI: move the date earlier and newer items disappear (no look-ahead); only that ticker's items appear (isolation).
+4. Failure cases shown honestly: unknown ticker or stopped backend gives a clear error in the app; live fetching off falls back to cache; scanned PDF flagged; empty ticker returns an empty list, not a crash.
+5. Local model: model status through the API (`/model/health`), optionally one schema-valid structured response, with VRAM and latency noted.
+6. Tests: run `pytest` (core and API tests) live and show the log.
+7. Status section: done, in progress, next, blocked (honest).
 
 ## Tonight (priority order)
-1. Make sure the demo runs end to end from cache on the laptop. Rehearse it once.
-2. `pytest` green; save the log.
-3. Local model: model pulled, reachable from the laptop, one structured-output call works, numbers noted.
-4. Status doc and decisions doc up to date, including the PSX token / session decision.
-5. Give the report teammate: architecture sketch, the EvidenceItem fields, the data-source table, the compliance note, and test results.
+1. API endpoints 1-3 from docs/api-plan.md working and tested; share `/docs` with the Flutter teammate.
+2. Flutter app calling the API and showing a real bundle. Rehearse the demo once end to end.
+3. `pytest` green (core + API); save the log.
+4. Local model: pulled, reachable, `/model/health` works, one structured-output call, numbers noted.
+5. Status and decisions docs up to date (UI-connection decision, SBP deferral, PSX token / session decisions).
+6. Give the report teammate: architecture (now including the API and UI), EvidenceItem fields, endpoint list, data-source table, compliance note, test results.
 
 ## Local model deployment checklist
 - Ollama on the GPU box; pull Qwen3-8B (verify the tag and that it is Q4_K_M).
-- Reachable from the laptop (LAN `OLLAMA_HOST`, or Tailscale).
+- Reachable from the backend machine (LAN `OLLAMA_HOST`, or Tailscale).
 - One call with a JSON-schema `format` returning valid JSON; check how Qwen3 thinking mode behaves with structured output and turn it off if needed (verify in the current Ollama docs).
 - Fixed seed and low temperature; record VRAM, tokens/sec, latency.
 - Keep all calls behind the `LLM` interface so a fake model can stand in for tests.
 
 ## After mid
-1. PSX announcements fetcher (session-imitating; see below), behind the `fetcher` interface, cached, switchable.
-2. Finish the gold set and quality metrics; decide embeddings only if BM25 is not enough.
-3. Evidence bundle -> agent turn with evidence-ID citations (thin end-to-end slice).
-4. Settle the faithfulness method from the new base paper.
+1. SBP EasyData macro loader (policy rate, inflation) producing MACRO evidence items.
+2. PSX announcements fetcher (session-imitating; see below), behind the `fetcher` interface, cached, switchable, if not already complete.
+3. Finish the gold set and quality metrics; decide embeddings only if BM25 is not enough.
+4. Evidence bundle -> agent turn with evidence-ID citations (thin end-to-end slice), exposed through the API.
+5. Settle the faithfulness method from the new base paper.
+6. Extend the UI: portfolio views and AI output.
 
 ## PSX announcements: session-imitating fetcher
 Team decision: imitate a browser session for the announcements list. Approach and limits:
