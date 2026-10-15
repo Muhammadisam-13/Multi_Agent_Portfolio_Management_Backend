@@ -41,7 +41,7 @@ tokens of room would receive and what was left out; `python -m mizan.retrieval.s
 - Bundle size estimates and a token-budgeted context selector (`select_context`).
 
 **Known limits (say them out loud)**
-- **Bundles are 8k-24k tokens (estimated, not a real tokenizer)** and 22-67% of that is daily price rows; they do not fit a small window.
+- **Bundles are 8k-24k tokens (estimated, not a real tokenizer)** and 22-50% of that is daily price rows; they do not fit a small window.
   The selector exists for that; the choice of price granularity (daily rows vs weekly summaries) is still open.
 - **34 of 131 announcements are image-only PDFs** and carry only their title; many are material-information, board-meeting and dividend notices.
   OCR could not be run on this laptop (Windows Application Control blocked the library; not worked around). Two periodic reports are image-only too.
