@@ -158,3 +158,19 @@ confirm or correct those lines before the report.
   which FastAPI serializes directly; the contract (the six item fields, the three bundle fields) is unchanged.
 - **CORS:** not enabled; a Flutter desktop app is not subject to it. A Flutter web build would need it (api-plan.md).
 - **Enforced by:** `api/`, `tests/test_api*.py` (TestClient, no network, no GPU), and the no-network test that fails if any endpoint opens a socket.
+
+## D12. Development model on the Mac, target model on the GPU box (2026-10-15)
+- **Decision:** development runs `qwen3:4b-instruct` (4.0B parameters, Q4_K_M) on a MacBook M1 with 8 GB RAM, served by Ollama over the
+  home network. The target stays `qwen3:8b` on the RTX 3080 box. The two differ only by `MIZAN_OLLAMA_URL` and `MIZAN_OLLAMA_MODEL`
+  (`api/config.py`); no code change is needed to switch.
+- **Reasoning:** the dev laptop has no GPU, and the 8B model (about 5.2 GB) does not fit comfortably in 8 GB of shared memory.
+- **Facts checked on 2026-10-15:**
+  - the 4B model was pulled with Ollama on the MacBook M1 (8 GB); `ollama ps` shows 100% GPU (Apple GPU), context 4096; it is served at
+    `http://192.168.100.95:11434` on the home network;
+  - from the Windows laptop, `GET /model/health` returned reachable true, model_available true, latency about 55 ms; `GET /health`
+    returned status ok, snapshot demo-v3, 976 items, verified true; 313 tests pass;
+  - Ollama's tags page lists plain `qwen3:4b` as a thinking build, so we use the `qwen3:4b-instruct` tag, and the planned chat call
+    will send `think: false`.
+- **Rule:** results from the 4B must be labelled with the model tag and never mixed with 8B results.
+- **Enforced by:** `api/config.py` settings only; nothing else in the code depends on the model name.
+- Agreement with Isam: [to confirm].
