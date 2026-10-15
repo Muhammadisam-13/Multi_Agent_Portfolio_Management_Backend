@@ -120,3 +120,11 @@ confirm or correct those lines before the report.
 - **Reasoning (from the plan):** core PSX data must not depend on a third-party search API, both because the handbook caps the score
   for over-reliance on ready-made APIs and tools, and because results must be reproducible.
 - **Enforced by:** not built yet.
+
+## D9. No OCR for scanned PDFs (Isam, 2026-10-15)
+- **Decision:** scanned (image-only) PDFs are not OCR'd. They stay as title-only items flagged "needs OCR".
+- **Reasoning (Isam):** unimportant; the layer already has a good amount of data. Context (Claude Code): 45 of the 131 announcements and
+  two periodic reports are image-only, and an OCR library could not run on the development laptop anyway (Windows Application Control
+  blocked a DLL; not worked around).
+- **Consequence:** many material-information, board-meeting and dividend notices carry only their title. State this as a limitation in the
+  report. The OCR flag stays in the code, so OCR can be added later without changing the data format.

@@ -62,7 +62,7 @@ behind each are in `docs/mid-and-next-plan.md`. Retrieval covers items 1-4 and 6
 
 ## Still open
 1. SBP macro items (needs an API key; decide whether the debate needs it).
-2. OCR for the image-only PDFs (another machine, or an engine IT allows).
+2. ~~OCR for the image-only PDFs~~ dropped by decision (D9); scanned notices stay title-only.
 3. Embeddings, to be compared with `bm25-norm` on both gold sets (GPU box); a larger and harder gold set.
 4. ENGRO: choose a current symbol or a replacement ticker. Price granularity (daily rows vs weekly summaries).
 5. Optional news via Tavily or similar (D8).

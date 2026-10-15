@@ -66,7 +66,8 @@ tokens at 4 characters per token, 11k-31k at 3; estimates, not a real tokenizer)
   a decision is not needed.
 
 **Not started**
-- SBP macro (MACRO items); optional news via Tavily (D8); embeddings; OCR; the `LLM` interface and local model deployment (D6).
+- SBP macro (MACRO items); optional news via Tavily (D8); embeddings; the `LLM` interface and local model deployment (D6).
+- OCR: decided not to do it (D9).
 
 **Blocked / unresolved**
 - Nothing is blocked by an outside party. ENGRO has no usable symbol (its prices stop at 2025-01-03) and is excluded.
