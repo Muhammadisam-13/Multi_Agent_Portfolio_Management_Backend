@@ -9,6 +9,7 @@ from datetime import date
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api import __version__
@@ -25,6 +26,8 @@ from mizan.llm.selftest import run_self_test
 from mizan.retrieval.store import SnapshotError, SnapshotStore, resolve_snapshot_folder
 from mizan.schemas import EvidenceBundle, EvidenceItem
 
+LOCAL_ORIGINS = r"http://(localhost|127\.0\.0\.1)(:\d+)?"      # matched against the whole Origin header
+
 
 def create_app(settings: Settings | None = None, llm: LLM | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
@@ -34,6 +37,10 @@ def create_app(settings: Settings | None = None, llm: LLM | None = None) -> Fast
         description="Evidence bundles for PSX tickers, as of a date. Serves a frozen snapshot; never fetches live.",
     )
     app.state.settings = settings
+    # For a Flutter web build served from this machine (a desktop build is not subject to CORS). Extra origins, such as a web
+    # build on another machine, come from MIZAN_CORS_ORIGINS.
+    app.add_middleware(CORSMiddleware, allow_origin_regex=LOCAL_ORIGINS, allow_origins=list(settings.cors_origins),
+                       allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
     # no request is made until a /model/... endpoint is called
     app.state.llm = llm or OllamaClient(settings.ollama_url, settings.ollama_model, chat_timeout_s=settings.ollama_timeout_s,
                                         num_ctx=settings.ollama_num_ctx, seed=settings.ollama_seed,
