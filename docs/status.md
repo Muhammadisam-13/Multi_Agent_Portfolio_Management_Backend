@@ -15,8 +15,15 @@ Nothing here is marked done unless it exists in the repo and is tested. Scope: `
     test exists (`tests/test_llm_live.py`, `MIZAN_LIVE_OLLAMA=1`).
   - **Built 2026-10-16:** `ask()` (`mizan/llm/ask.py`) and endpoint 8 `POST /ask`: an answer over the as-of evidence, cut to a
     2500-token budget, with every cited id checked against the evidence shown (one corrective retry, then 502; D13). CORS for a Flutter
-    web build on localhost. **Tested with `FakeLLM` only; `ask()` has not yet run on the real model.** 439 tests pass, 2 opt-in live
-    tests skipped (2026-10-16). Contract agreement with Isam and the Flutter side: [to confirm].
+    web build on localhost. Tested with `FakeLLM` (439 tests passed, 2 opt-in live tests skipped). Contract agreement with Isam and the
+    Flutter side: [to confirm].
+  - **First real run, 2026-10-16 (Shahzeb, `qwen3:4b-instruct` on Ollama, context 4096): `POST /ask` failed** with "the reply was cut
+    off at the 512-token limit" on both attempts. Fix on the same day (D13 update): output cap is now a setting,
+    `MIZAN_OLLAMA_NUM_PREDICT` (default 1024); the prompt asks for at most 2 sentences and 3 one-sentence claims; retries no longer
+    resend the bad reply (it did not fit the 4096 context); the end of an unusable reply goes to the server log. Tested with fakes
+    (`FakeLLM`, and the real `OllamaClient` over a fake HTTP session for cut-off replies): 448 tests pass, 2 opt-in live tests
+    skipped. **Not yet re-run against the real model**, so it is not known yet whether the answers now fit; at the pessimistic 3
+    characters per token a retry with a full-length reply is still about 50 tokens over 4096 (arithmetic in D13).
   - **Update 2026-10-15:** the Ollama client has now been checked once against a real Ollama (health check only, over the LAN, from
     Windows; D12): `/model/health` returned reachable true, model_available true, about 55 ms, with `qwen3:4b-instruct` on a MacBook M1.
     The chat call and `/ask` (2026-10-16) have not been run against it yet. The default model tag `qwen3:8b` (the target on
