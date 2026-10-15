@@ -94,3 +94,17 @@ def test_zero_budget_and_empty_bundle_give_nothing(bundle):
 def test_item_cost_includes_the_overhead():
     item = EvidenceItem("x", "AAA", "s", "price", AS_OF, "a" * 30)
     assert item_cost(item, 3.0) == 10 + PER_ITEM_OVERHEAD
+
+
+def test_the_search_function_can_be_swapped():
+    from mizan.retrieval import bm25
+
+    newest = EvidenceItem("AAA-NEW", "AAA", "psx", "announcement", date(2026, 9, 20), "Board meeting notice.")
+    target = EvidenceItem("AAA-OLD", "AAA", "psx", "announcement", date(2026, 6, 1), "The reserves replacement ratio was 236 percent.")
+    filler = EvidenceItem("AAA-BIG", "AAA", "psx", "announcement", date(2026, 5, 1), "Another long unrelated sentence. " * 20)
+    bundle = build_bundle([newest, target, filler], "AAA", AS_OF)
+    budget = max(item_cost(newest, 3.0), item_cost(target, 3.0))              # room for exactly one of the two small items
+
+    # "replaced" only matches "replacement" once words are stemmed; without a match the newest item wins
+    assert [i.id for i in select_context(bundle, "replaced", budget).items] == ["AAA-OLD"]
+    assert [i.id for i in select_context(bundle, "replaced", budget, search_fn=bm25.search).items] == ["AAA-NEW"]

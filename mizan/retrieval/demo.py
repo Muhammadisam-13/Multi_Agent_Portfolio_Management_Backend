@@ -15,7 +15,7 @@ from datetime import date
 from pathlib import Path
 
 from mizan.data.snapshot import verify_snapshot
-from mizan.retrieval.bm25 import search
+from mizan.retrieval import bm25, lexical
 from mizan.retrieval.bundle import build_bundle, load_items
 from mizan.retrieval.context import select_context
 from mizan.schemas import EvidenceItem
@@ -34,7 +34,7 @@ def _counts(items) -> str:
 
 def build_report(items: list[EvidenceItem], ticker: str, as_of: date, snapshot_label: str = "snapshot",
                  limit: int = 12, price_rows: int = 2, query: str | None = None, k: int = 5,
-                 compare_as_of: date | None = None, budget_tokens: int | None = None) -> str:
+                 compare_as_of: date | None = None, budget_tokens: int | None = None, search_fn=lexical.search_normalized) -> str:
     ticker = ticker.upper()
     bundle = build_bundle(items, ticker, as_of)
     mine = [i for i in items if i.ticker == ticker]
@@ -82,13 +82,13 @@ def build_report(items: list[EvidenceItem], ticker: str, as_of: date, snapshot_l
 
     if query:
         out += ["", f"BM25 search in this bundle for {query!r} (top {k}):"]
-        hits = search(bundle, query, k)
+        hits = search_fn(bundle, query, k)
         for rank, (i, score) in enumerate(hits, 1):
             out += [f"  {rank}. score {score:.2f}  {i.date}  {i.id}", f"      {_preview(i.text)}"]
         if not hits:
             out.append("  no item shares a word with the query")
     if budget_tokens is not None:
-        sel = select_context(bundle, query, budget_tokens)
+        sel = select_context(bundle, query, budget_tokens, search_fn=search_fn)
         out += ["", f"Context for the model: budget {budget_tokens} tokens (estimate), used {sel.used_tokens}, "
                     f"{len(sel.items)} of {len(bundle.items)} items" + (f", question {query!r}" if query else ", no question"),
                 f"  left out: {', '.join(f'{n} {t}' for t, n in sel.dropped.items()) or 'nothing'}"]
@@ -107,6 +107,7 @@ def main(argv=None) -> int:
     p.add_argument("--compare-as-of", dest="compare_as_of", type=date.fromisoformat)
     p.add_argument("--query")
     p.add_argument("--k", type=int, default=5)
+    p.add_argument("--retriever", choices=["bm25-norm", "bm25"], default="bm25-norm", help="search used for --query and --budget")
     p.add_argument("--budget", type=int, help="also show the items a model with this many tokens of room would get")
     p.add_argument("--limit", type=int, default=12, help="non-price items to show")
     p.add_argument("--snapshots-dir", type=Path, default=ROOT / "data" / "snapshots")
@@ -124,7 +125,8 @@ def main(argv=None) -> int:
     items = load_items(folder / "items.jsonl")
     print(build_report(items, args.ticker, args.as_of, f"snapshot {folder.name}, verified against its manifest",
                        limit=args.limit, query=args.query, k=args.k, compare_as_of=args.compare_as_of,
-                       budget_tokens=args.budget))
+                       budget_tokens=args.budget,
+                       search_fn=lexical.search_normalized if args.retriever == "bm25-norm" else bm25.search))
     return 0
 
 

@@ -5,7 +5,7 @@ token budget. The cut is deterministic and uses only the bundle it is given, so 
 other tickers' items:
 
   1. always (while the budget lasts): the most recent price items and every financial-results item;
-  2. then items ranked by BM25 relevance to the question (if there is one);
+  2. then items ranked by BM25 relevance to the question (if there is one; normalized words by default);
   3. then the newest remaining non-price items (announcements, report sections), newest first.
   Older daily price rows are only included when the question matches them (step 2).
 
@@ -15,7 +15,7 @@ Token counts are estimates (characters / chars_per_token, 3 by default = pessimi
 import math
 from dataclasses import dataclass, field
 
-from mizan.retrieval import bm25
+from mizan.retrieval import lexical
 from mizan.schemas import EvidenceBundle, EvidenceItem
 
 PER_ITEM_OVERHEAD = 12          # tokens for the id / date / source line shown with each item
@@ -34,7 +34,8 @@ class ContextSelection:
 
 
 def select_context(bundle: EvidenceBundle, query: str | None = None, budget_tokens: int = 6000,
-                   chars_per_token: float = 3.0, recent_prices: int = 3) -> ContextSelection:
+                   chars_per_token: float = 3.0, recent_prices: int = 3,
+                   search_fn=lexical.search_normalized) -> ContextSelection:
     chosen: dict[str, EvidenceItem] = {}
     used = 0
 
@@ -52,7 +53,7 @@ def select_context(bundle: EvidenceBundle, query: str | None = None, budget_toke
         add(item)
 
     if query:
-        for item, _ in bm25.search(bundle, query, k=len(bundle.items)):
+        for item, _ in search_fn(bundle, query, k=len(bundle.items)):
             add(item)
     for item in (i for i in newest_first if i.type != "price"):
         add(item)

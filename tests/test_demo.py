@@ -72,3 +72,12 @@ def test_budget_shows_what_fits_and_what_was_left_out(items):
     assert "Context for the model: budget 100 tokens (estimate)" in text and "left out:" in text
     assert "AAA-ANN-2025-04-25" in text.split("Context for the model")[1]          # the dividend announcement was kept
     assert "Context for the model" not in build_report(items, "AAA", AS_OF)
+
+
+def test_cli_can_use_plain_or_normalized_search(tmp_path, capsys, items):
+    snap = write_snapshot(items, tmp_path / "snaps" / "t1")
+    base = ["--snapshot", str(snap), "--ticker", "AAA", "--as-of", "2025-06-30", "--query", "dividends"]
+    assert main(base + ["--retriever", "bm25"]) == 0
+    assert "no item shares a word with the query" in capsys.readouterr().out         # plain BM25: "dividends" != "dividend"
+    assert main(base) == 0
+    assert "1. score" in capsys.readouterr().out                                      # normalized (default): found
