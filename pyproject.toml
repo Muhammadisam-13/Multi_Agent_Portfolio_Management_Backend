@@ -5,3 +5,6 @@ requires-python = ">=3.12"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "ollama: needs a real Ollama server; skipped unless MIZAN_LIVE_OLLAMA=1",
+]
