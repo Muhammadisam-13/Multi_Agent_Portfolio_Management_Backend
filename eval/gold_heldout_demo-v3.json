@@ -1,0 +1,166 @@
+{
+  "_note": "Held-out set written before trying any BM25 change. Each label is every item of the ticker that contains the evidence phrase(s) of the question (checked by script, then by eye), not the item whose title matches the wording.",
+  "as_of": "2026-10-12",
+  "queries": [
+    {
+      "id": "h01",
+      "difficulty": "medium",
+      "ticker": "SYS",
+      "query": "what are management's plans around artificial intelligence and acquisitions",
+      "evidence": [
+        "GenAI",
+        "Mergers & Acquisitions"
+      ],
+      "relevant": [
+        "SYS-DECK-278089-p027"
+      ]
+    },
+    {
+      "id": "h02",
+      "difficulty": "medium",
+      "ticker": "HUBC",
+      "query": "electric vehicle assembly plant investment",
+      "evidence": [
+        "Gharo CKD Assembly Plant",
+        "\\$150M"
+      ],
+      "relevant": [
+        "HUBC-DECK-282110-p008"
+      ]
+    },
+    {
+      "id": "h03",
+      "difficulty": "medium",
+      "ticker": "HBL",
+      "query": "how much have deposits grown over the past year",
+      "evidence": [
+        "deposit base has grown"
+      ],
+      "relevant": [
+        "HBL-DECK-275290-p006"
+      ]
+    },
+    {
+      "id": "h04",
+      "difficulty": "easy",
+      "ticker": "LUCK",
+      "query": "forward looking statement and financial projections",
+      "evidence": [
+        "FORWARD LOOKING STATEMENT|Financial Projections"
+      ],
+      "relevant": [
+        "LUCK-REPORT-282262-p014-1",
+        "LUCK-REPORT-282262-p186-0",
+        "LUCK-REPORT-282262-p188-0",
+        "LUCK-REPORT-282262-p189-0"
+      ]
+    },
+    {
+      "id": "h05",
+      "difficulty": "hard",
+      "ticker": "SYS",
+      "query": "risk factors that could hurt margins",
+      "evidence": [
+        "risk factors that may impact|PKR relative to the USD"
+      ],
+      "relevant": [
+        "SYS-REPORT-274532-p024-0",
+        "SYS-REPORT-274532-p024-1"
+      ]
+    },
+    {
+      "id": "h06",
+      "difficulty": "hard",
+      "ticker": "OGDC",
+      "query": "what share of reserves was replaced by new finds",
+      "evidence": [
+        "reserves replacement ratio"
+      ],
+      "relevant": [
+        "OGDC-REPORT-283468-p064-2"
+      ]
+    },
+    {
+      "id": "h07",
+      "difficulty": "medium",
+      "ticker": "HBL",
+      "query": "IMF programme and the economic outlook",
+      "evidence": [
+        "\\bIMF\\b"
+      ],
+      "relevant": [
+        "HBL-REPORT-275409-p005-1",
+        "HBL-REPORT-280977-p005-0",
+        "HBL-REPORT-280977-p005-1",
+        "HBL-REPORT-280977-p006-2",
+        "HBL-REPORT-280977-p007-0"
+      ]
+    },
+    {
+      "id": "h08",
+      "difficulty": "hard",
+      "ticker": "FFC",
+      "query": "profit after tax higher than last year because of more fertilizer sales",
+      "evidence": [
+        "PAT PKR 17\\.5 Bn"
+      ],
+      "relevant": [
+        "FFC-DECK-276757-p005"
+      ]
+    },
+    {
+      "id": "h09",
+      "difficulty": "medium",
+      "ticker": "HBL",
+      "query": "dividend declared by the board in April",
+      "evidence": [
+        "Dividend The Board of Directors, in its meeting held on April 17, 2026"
+      ],
+      "relevant": [
+        "HBL-REPORT-275409-p006-1"
+      ]
+    },
+    {
+      "id": "h10",
+      "difficulty": "medium",
+      "ticker": "SYS",
+      "query": "was the corporate briefing postponed or revoked",
+      "evidence": [
+        "REVOKED"
+      ],
+      "relevant": [
+        "SYS-ANN-277956",
+        "SYS-ANN-278038",
+        "SYS-ANN-20260604-d6b0982b",
+        "SYS-ANN-20260709-defd861e"
+      ]
+    },
+    {
+      "id": "h11",
+      "difficulty": "medium",
+      "ticker": "HUBC",
+      "query": "operational load factor of the power plants",
+      "evidence": [
+        "Load Factor"
+      ],
+      "relevant": [
+        "HUBC-DECK-282110-p005"
+      ]
+    },
+    {
+      "id": "h12",
+      "difficulty": "hard",
+      "ticker": "OGDC",
+      "query": "did the company receive money owed by the power sector",
+      "evidence": [
+        "circular debt"
+      ],
+      "relevant": [
+        "OGDC-ANN-275125",
+        "OGDC-ANN-277817",
+        "OGDC-ANN-279055",
+        "OGDC-REPORT-283468-p096-0"
+      ]
+    }
+  ]
+}
