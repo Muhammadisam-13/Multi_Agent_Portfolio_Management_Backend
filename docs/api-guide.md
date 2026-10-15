@@ -58,7 +58,7 @@ Response (200):
 | `timings_ms` | `{retrieval, model}`: building the bundle and choosing the evidence; the model call(s) |
 | `tokens_per_second`, `prompt_tokens`, `completion_tokens` | from the model server for the accepted reply; can be `null` |
 | `context` | `{budget_tokens, used_tokens, dropped}`: the evidence budget, its estimated use, and how many items of each type were left out to fit |
-| `attempts` | 1, or 2 when the first answer was rejected (it cited an id it was not shown, or cited nothing) and the retry was accepted |
+| `attempts` | 1, or 2 when the first answer was rejected (it cited an id it was not shown, or cited nothing) and the retry was accepted. A retry for a reply that was not valid JSON or was cut off happens inside the model client and is not counted here |
 
 What the server guarantees: the model is only shown items dated on or before `as_of`, of this ticker or MACRO, cut to the budget; an
 answer that cites any other id is sent back once with the problem named, and rejected (502) if it happens again. It does **not** check
@@ -66,7 +66,8 @@ that a claim's wording is supported by the cited item, or that numbers in `answe
 the code cannot verify it yet.
 
 Timing: tested with a fake model only. As a rough guide from Shahzeb's measurement on 2026-10-16 on the development Mac
-(`qwen3:4b-instruct`, about 22 tokens/s, about 3 s to load, context 4096): a full 512-token answer would take about 23 s of generation alone, plus the prompt and,
+(`qwen3:4b-instruct`, about 22 tokens/s, about 3 s to load, context 4096): the prompt asks for at most 2 sentences and 3 short claims,
+but a reply that uses the whole 1024-token cap (`MIZAN_OLLAMA_NUM_PREDICT`) would take about 47 s of generation alone, plus the prompt and,
 when the model was unloaded, the load. A retry roughly doubles that. Give the UI's HTTP call a timeout longer than
 `MIZAN_OLLAMA_TIMEOUT_S` (default 120 s) and show a "waiting for the model" state.
 
@@ -80,7 +81,7 @@ Every error body is `{"detail": "<one readable sentence>"}`: show `detail` as is
 |---|---|
 | 404 | unknown ticker (the message lists the known ones); unknown evidence id, or one not visible as of the date |
 | 422 | a bad date (`as_of=banana`), or `start` after `end`; for `POST /ask`, a missing or empty `ticker`/`question`, a question over 500 characters, or a body that is not JSON |
-| 502 | `POST /model/test` and `POST /ask`: the model answered, but not with JSON matching the schema, even after one retry. `POST /ask` also: the answer cited evidence it was not shown (the message names the rejected ids) or cited nothing, twice |
+| 502 | `POST /model/test` and `POST /ask`: the model answered, but not with JSON matching the schema, even after one retry. `POST /ask` also: the answer cited evidence it was not shown (the message names the rejected ids) or cited nothing, twice. Also when the reply was cut off at the output cap (`MIZAN_OLLAMA_NUM_PREDICT`) on both attempts: the message says so; the end of the reply is written to the server log, not to `detail` |
 | 503 | the evidence snapshot is missing or does not match its manifest; prices not cached; the model server cannot be reached or did not answer in time; the model is not pulled (the message says which `ollama pull` to run) |
 
 A known ticker with no data returns **200 with an empty `items` list**, not an error. If the backend is stopped, the HTTP call itself fails

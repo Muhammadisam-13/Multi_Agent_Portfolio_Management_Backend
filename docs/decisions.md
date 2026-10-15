@@ -183,20 +183,34 @@ confirm or correct those lines before the report.
     (`MIZAN_ASK_BUDGET_TOKENS`). `ask()` receives a bundle built by `store.bundle(ticker, as_of)` and only narrows it, so no-look-ahead
     and ticker isolation stay in the retrieval layer.
   - **An answer that cites an evidence id the model was not shown is rejected.** So is one with no claims, or a claim with no id, unless
-    the model says the evidence is insufficient. The model gets one corrective retry naming the problem and the allowed ids; a second
+    the model says the evidence is insufficient. The model gets one corrective retry naming the problem (until 2026-10-16 also the allowed ids, see the update below); a second
     failure raises `UngroundedAnswer` and the API answers 502 naming the rejected ids. Nothing is silently dropped or repaired, apart
     from trimming spaces and square brackets around an id.
 - **Reasoning for 2500 (Claude Code, from the request):** the context is 4096 tokens (Shahzeb's measurement on the Mac, 2026-10-16, and
-  the `MIZAN_OLLAMA_NUM_CTX` default). The answer may use up to 512 (`num_predict`), leaving 3584 for the prompt; 2500 goes to evidence
+  the `MIZAN_OLLAMA_NUM_CTX` default). The answer may use up to 512 (`num_predict`; 1024 since the update below), leaving 3584 for the prompt; 2500 goes to evidence
   and about 1,000 to the instructions, the item headers, the question (up to 500 characters) and the chat template. `select_context`
   counts 3 characters per token, which is pessimistic for English text.
 - **Measured offline (2026-10-16, no model call):** for OGDC as of 2026-09-08 and the question "What did OGDC announce about its annual
   results?", the selector shows 17 of 129 items (2469 estimated tokens; 92 price rows, 15 announcements and 5 report sections left out)
   and the whole prompt is 8,823 characters: about 2,200 tokens at 4 characters per token, about 2,940 at 3. The real token count is
   [to confirm on the real model] (`prompt_tokens` in the response).
-- **Known risk:** a corrective retry adds the first answer (up to 512 tokens) and a note listing the allowed ids. At the pessimistic 3
-  characters per token the retry prompt plus a 512-token answer can exceed 4096; at 4 it fits. What Ollama does when a prompt exceeds
-  `num_ctx` has not been checked [to confirm]. If it becomes a problem: lower the budget, or raise `MIZAN_OLLAMA_NUM_CTX`.
+- **Update 2026-10-16 (Shahzeb's first real run, `qwen3:4b-instruct` on Ollama, context 4096):** `POST /ask` failed with "the reply was
+  cut off at the 512-token limit" on both attempts. Changes: the output cap is a setting, `MIZAN_OLLAMA_NUM_PREDICT`, default **1024**;
+  the prompt asks for at most 2 sentences and at most 3 claims of one short sentence each, citing ids exactly as shown; and **neither
+  retry resends the bad reply any more**. The JSON retry in `OllamaClient` sends the original messages plus one note naming the problem
+  (for a cut-off reply, also "keep it within 1024 tokens"); the grounding retry in `ask()` sends the original messages plus one note
+  naming the problem, without the allowed-id list (the ids are already shown in square brackets in the evidence). The end of the
+  unusable reply (last 200 characters) goes to the server log, never to the API error.
+- **Context arithmetic (Claude Code, measured offline 2026-10-16 on demo-v3, OGDC as of 2026-09-08, question "What did OGDC announce about
+  its annual results?"):** prompt 8,959 characters (instructions 830, evidence 8,071 for 17 items, question 58). At the pessimistic 3
+  characters per token, plus about 10 tokens of chat template per message (assumed, not measured): first call about 3,020 tokens + a
+  1024-token cap = about 4,040, under 4096. **The old retry did not fit:** it added the first reply (up to 1024) and a note listing all
+  17 ids (748 characters, about 250 tokens): about 5,330. The new retry note is 277 characters (about 90 tokens) plus any rejected ids:
+  about 4,140 with a full 1024-token reply, so **still about 50 tokens over at 3 characters per token** (about 200 over with a 500-character
+  question); at 4 characters per token it is about 3,400 and fits. It only overflows if the reply really uses the whole cap, which the
+  short-answer prompt is meant to prevent. Real token counts are [to confirm] (`prompt_tokens` in the /ask response). If it is a
+  problem: `MIZAN_ASK_BUDGET_TOKENS=2300` gives room even at 3 characters per token, or raise `MIZAN_OLLAMA_NUM_CTX`. What Ollama does
+  when prompt plus reply exceed `num_ctx` has not been checked [to confirm].
 - **Why reject rather than filter (Claude Code, from the request):** a cited id outside the evidence shown is either invented or comes
   from outside knowledge; removing it would hide that and keep a claim with no support. The faithfulness component needs every claim to
   point at evidence that was really given.

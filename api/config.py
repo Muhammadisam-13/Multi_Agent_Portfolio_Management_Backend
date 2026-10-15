@@ -46,10 +46,12 @@ class Settings:
     ollama_seed: int = 42
     ollama_keep_alive: str = "30m"
     # Evidence budget for POST /ask. With num_ctx 4096 the prompt must also hold the instructions, the question (up to 500
-    # characters) and leave room for the answer (num_predict 512): 4096 - 512 = 3584 tokens for the prompt, of which 2500 go to
-    # evidence and about 1,000 stay for the rest. select_context counts pessimistically (3 characters per token), so the real
-    # evidence is usually smaller than 2500 tokens. This is an estimate, not a tokenizer count: digit-heavy text such as price
-    # rows can tokenize worse. Check prompt_tokens in the /ask response on the real model. Raise it with MIZAN_OLLAMA_NUM_CTX.
+    # characters) and leave room for the answer (num_predict 1024): 4096 - 1024 = 3072 tokens for the prompt, of which 2500 go to
+    # evidence and about 570 stay for the rest. A retry adds only a short note (the bad reply is not resent). select_context
+    # counts pessimistically (3 characters per token); at that rate the real OGDC prompt plus a full 1024-token reply is right at
+    # 4096 (decision D13), at 4 characters per token it fits with room to spare. This is an estimate, not a tokenizer count:
+    # digit-heavy text such as price rows can tokenize worse. Check prompt_tokens in the /ask response on the real model. If it
+    # is too close, lower this or raise MIZAN_OLLAMA_NUM_CTX.
     ask_budget_tokens: int = 2500
     cors_origins: tuple[str, ...] = ()
 
