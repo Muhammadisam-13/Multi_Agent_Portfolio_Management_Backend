@@ -34,6 +34,18 @@ def write_report_if_changed(path: Path, report: dict) -> bool:
     return True
 
 
+def by_difficulty(result: dict, gold: dict, k: int) -> dict:
+    """Mean recall@k and MRR per 'difficulty' label in the gold file (queries without a label are skipped)."""
+    labels = {q["id"]: q["difficulty"] for q in gold["queries"] if "difficulty" in q}
+    groups: dict[str, list[dict]] = {}
+    for q in result["per_query"]:
+        if q["id"] in labels:
+            groups.setdefault(labels[q["id"]], []).append(q)
+    return {label: {"queries": len(qs), f"recall@{k}": sum(q[f"recall@{k}"] for q in qs) / len(qs),
+                    "mrr": sum(q["rr"] for q in qs) / len(qs)}
+            for label, qs in sorted(groups.items())}
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--snapshot", required=True)
@@ -53,10 +65,14 @@ def main(argv=None) -> int:
         return 1
 
     key = f"recall@{args.k}"
+    result["by_difficulty"] = by_difficulty(result, gold, args.k)
     print(f"BM25 on snapshot {folder.name}, {result['queries']} queries, as of {result['as_of']}")
-    print(f"  {key} = {result[key]:.2f}   MRR = {result['mrr']:.2f}\n")
+    print(f"  {key} = {result[key]:.2f}   MRR = {result['mrr']:.2f}")
+    for label, g in result["by_difficulty"].items():
+        print(f"    {label:<7} {g['queries']:>2} queries   {key} = {g[key]:.2f}   MRR = {g['mrr']:.2f}")
+    print()
     for q in result["per_query"]:
-        mark = "ok  " if q["rr"] == 1.0 else ("part" if q["rr"] > 0 else "MISS")
+        mark ="ok  " if q["rr"] == 1.0 else ("part" if q["rr"] > 0 else "MISS")
         print(f"  {mark} {q['id']} [{q['ticker']}] {q['query']!r}: first hit rank "
               f"{round(1 / q['rr']) if q['rr'] else '-'}; returned {len(q['returned'])}")
         if q["rr"] < 1.0:

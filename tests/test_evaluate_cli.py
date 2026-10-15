@@ -53,3 +53,14 @@ def test_tampered_snapshot_or_missing_gold_file_is_refused(snap, tmp_path, capsy
     (snap / "items.jsonl").write_bytes(b"{}\n")
     assert main(["--snapshot", str(snap), "--gold", str(FIXTURES / "gold_queries.json")]) == 1
     assert "EVALUATION NOT RUN" in capsys.readouterr().err
+
+
+def test_scores_are_grouped_by_difficulty_when_the_gold_file_has_labels(snap, tmp_path, capsys):
+    gold = json.loads((FIXTURES / "gold_queries.json").read_text(encoding="utf-8"))
+    for q in gold["queries"]:
+        q["difficulty"] = "easy" if q["id"] in ("q01", "q02", "q03") else "hard"
+    labelled = tmp_path / "labelled.json"
+    labelled.write_text(json.dumps(gold), encoding="utf-8")
+    assert main(["--snapshot", str(snap), "--gold", str(labelled)]) == 0
+    out = capsys.readouterr().out
+    assert "easy     3 queries   recall@5 = 1.00" in out and "hard     7 queries" in out
