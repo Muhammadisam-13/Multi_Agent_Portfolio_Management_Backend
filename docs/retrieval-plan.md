@@ -1,4 +1,7 @@
-# Current task: PSX retrieval layer
+# PSX retrieval layer plan (reported done as of 2026-10-15)
+
+Status: PSX data retrieval is reported done. Verify each step against the repo and tests before claiming it in the report.
+SBP macro (part of step 10) is deferred until after the mid. The current task is now @docs/api-plan.md.
 
 Goal: a tested retrieval layer that returns an as-of-dated `EvidenceBundle` for a ticker. No LLM involved.
 
@@ -13,7 +16,7 @@ Goal: a tested retrieval layer that returns an as-of-dated `EvidenceBundle` for 
 8. Only if BM25 recall is insufficient: add embeddings (check current small embedding models, e.g. bge-m3, nomic-embed-text) and compare to BM25.
 9. `mizan/fetcher/`: automated PSX announcements fetcher (rate limit, User-Agent, local cache, config switch to disable live fetching).
    Test it against saved responses so the test suite never hits PSX.
-10. Loaders and normalizer (`mizan/data/`): psxdata prices/fundamentals, SBP macro, cached PDFs -> text, all producing `EvidenceItem` files in `data/snapshots/`.
+10. Loaders and normalizer (`mizan/data/`): psxdata prices/fundamentals, SBP macro (after the mid), cached PDFs -> text, all producing `EvidenceItem` files in `data/snapshots/`.
 
 Steps 1-6 can run on fake data right away; steps 9-10 plug real data in.
 

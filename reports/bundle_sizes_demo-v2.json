@@ -1,0 +1,199 @@
+{
+  "snapshot": "demo-v2",
+  "as_of": "2026-10-12",
+  "method": "characters / 4 and / 3 (estimates, not a real tokenizer)",
+  "bundles": [
+    {
+      "ticker": "FFC",
+      "as_of": "2026-10-12",
+      "items": 161,
+      "chars": 35475,
+      "tokens_estimate": {
+        "4_chars_per_token": 8869,
+        "3_chars_per_token": 11825
+      },
+      "by_type": {
+        "announcement": {
+          "items": 27,
+          "chars": 7038,
+          "share_of_chars": 0.198
+        },
+        "financial_results": {
+          "items": 3,
+          "chars": 909,
+          "share_of_chars": 0.026
+        },
+        "price": {
+          "items": 123,
+          "chars": 16073,
+          "share_of_chars": 0.453
+        },
+        "report_section": {
+          "items": 8,
+          "chars": 11455,
+          "share_of_chars": 0.323
+        }
+      }
+    },
+    {
+      "ticker": "HBL",
+      "as_of": "2026-10-12",
+      "items": 155,
+      "chars": 44243,
+      "tokens_estimate": {
+        "4_chars_per_token": 11061,
+        "3_chars_per_token": 14748
+      },
+      "by_type": {
+        "announcement": {
+          "items": 16,
+          "chars": 4334,
+          "share_of_chars": 0.098
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 1152,
+          "share_of_chars": 0.026
+        },
+        "price": {
+          "items": 123,
+          "chars": 16117,
+          "share_of_chars": 0.364
+        },
+        "report_section": {
+          "items": 12,
+          "chars": 22640,
+          "share_of_chars": 0.512
+        }
+      }
+    },
+    {
+      "ticker": "HUBC",
+      "as_of": "2026-10-12",
+      "items": 152,
+      "chars": 32454,
+      "tokens_estimate": {
+        "4_chars_per_token": 8114,
+        "3_chars_per_token": 10818
+      },
+      "by_type": {
+        "announcement": {
+          "items": 18,
+          "chars": 4612,
+          "share_of_chars": 0.142
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 1198,
+          "share_of_chars": 0.037
+        },
+        "price": {
+          "items": 123,
+          "chars": 16323,
+          "share_of_chars": 0.503
+        },
+        "report_section": {
+          "items": 7,
+          "chars": 10321,
+          "share_of_chars": 0.318
+        }
+      }
+    },
+    {
+      "ticker": "LUCK",
+      "as_of": "2026-10-12",
+      "items": 154,
+      "chars": 32475,
+      "tokens_estimate": {
+        "4_chars_per_token": 8119,
+        "3_chars_per_token": 10825
+      },
+      "by_type": {
+        "announcement": {
+          "items": 20,
+          "chars": 4573,
+          "share_of_chars": 0.141
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 1097,
+          "share_of_chars": 0.034
+        },
+        "price": {
+          "items": 123,
+          "chars": 16240,
+          "share_of_chars": 0.5
+        },
+        "report_section": {
+          "items": 7,
+          "chars": 10565,
+          "share_of_chars": 0.325
+        }
+      }
+    },
+    {
+      "ticker": "OGDC",
+      "as_of": "2026-10-12",
+      "items": 162,
+      "chars": 68819,
+      "tokens_estimate": {
+        "4_chars_per_token": 17205,
+        "3_chars_per_token": 22940
+      },
+      "by_type": {
+        "announcement": {
+          "items": 23,
+          "chars": 29841,
+          "share_of_chars": 0.434
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 1205,
+          "share_of_chars": 0.018
+        },
+        "price": {
+          "items": 123,
+          "chars": 16333,
+          "share_of_chars": 0.237
+        },
+        "report_section": {
+          "items": 12,
+          "chars": 21440,
+          "share_of_chars": 0.312
+        }
+      }
+    },
+    {
+      "ticker": "SYS",
+      "as_of": "2026-10-12",
+      "items": 171,
+      "chars": 72741,
+      "tokens_estimate": {
+        "4_chars_per_token": 18186,
+        "3_chars_per_token": 24247
+      },
+      "by_type": {
+        "announcement": {
+          "items": 27,
+          "chars": 27537,
+          "share_of_chars": 0.379
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 938,
+          "share_of_chars": 0.013
+        },
+        "price": {
+          "items": 123,
+          "chars": 16125,
+          "share_of_chars": 0.222
+        },
+        "report_section": {
+          "items": 17,
+          "chars": 28141,
+          "share_of_chars": 0.387
+        }
+      }
+    }
+  ]
+}

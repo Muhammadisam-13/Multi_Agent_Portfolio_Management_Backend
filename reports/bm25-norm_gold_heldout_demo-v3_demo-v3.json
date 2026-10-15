@@ -1,0 +1,248 @@
+{
+  "run_utc": "2026-10-15T09:57:45+00:00",
+  "retriever": "bm25-norm (rank_bm25.BM25Okapi, k1=1.5, b=0.75)",
+  "snapshot": "demo-v3",
+  "gold_set": "gold_heldout_demo-v3.json",
+  "as_of": "2026-10-12",
+  "k": 5,
+  "queries": 12,
+  "recall@5": 0.775,
+  "mrr": 0.7361111111111112,
+  "per_query": [
+    {
+      "id": "h01",
+      "ticker": "SYS",
+      "query": "what are management's plans around artificial intelligence and acquisitions",
+      "relevant": [
+        "SYS-DECK-278089-p027"
+      ],
+      "returned": [
+        "SYS-REPORT-277949-p006-1",
+        "SYS-DECK-278089-p024",
+        "SYS-REPORT-281936-p006-0",
+        "SYS-REPORT-274532-p015-1",
+        "SYS-REPORT-274532-p023-0"
+      ],
+      "recall@5": 0.0,
+      "rr": 0.0
+    },
+    {
+      "id": "h02",
+      "ticker": "HUBC",
+      "query": "electric vehicle assembly plant investment",
+      "relevant": [
+        "HUBC-DECK-282110-p008"
+      ],
+      "returned": [
+        "HUBC-DECK-282110-p008",
+        "HUBC-DECK-282110-p001",
+        "HUBC-ANN-282110",
+        "HUBC-REPORT-283369-p074-0",
+        "HUBC-REPORT-283369-p071-1"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "h03",
+      "ticker": "HBL",
+      "query": "how much have deposits grown over the past year",
+      "relevant": [
+        "HBL-DECK-275290-p006"
+      ],
+      "returned": [
+        "HBL-DECK-275290-p006",
+        "HBL-REPORT-275409-p007-0",
+        "HBL-REPORT-280977-p006-2",
+        "HBL-REPORT-280977-p005-1",
+        "HBL-REPORT-275409-p005-0"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "h04",
+      "ticker": "LUCK",
+      "query": "forward looking statement and financial projections",
+      "relevant": [
+        "LUCK-REPORT-282262-p014-1",
+        "LUCK-REPORT-282262-p186-0",
+        "LUCK-REPORT-282262-p188-0",
+        "LUCK-REPORT-282262-p189-0"
+      ],
+      "returned": [
+        "LUCK-REPORT-282262-p014-1",
+        "LUCK-REPORT-282262-p186-0",
+        "LUCK-REPORT-282262-p189-0",
+        "LUCK-ANN-282229",
+        "LUCK-ANN-280930"
+      ],
+      "recall@5": 0.75,
+      "rr": 1.0
+    },
+    {
+      "id": "h05",
+      "ticker": "SYS",
+      "query": "risk factors that could hurt margins",
+      "relevant": [
+        "SYS-REPORT-274532-p024-0",
+        "SYS-REPORT-274532-p024-1"
+      ],
+      "returned": [
+        "SYS-REPORT-274532-p024-0",
+        "SYS-REPORT-274532-p024-1",
+        "SYS-ANN-277743",
+        "SYS-REPORT-274532-p020-0",
+        "SYS-REPORT-274532-p015-1"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "h06",
+      "ticker": "OGDC",
+      "query": "what share of reserves was replaced by new finds",
+      "relevant": [
+        "OGDC-REPORT-283468-p064-2"
+      ],
+      "returned": [
+        "OGDC-REPORT-283468-p064-2",
+        "OGDC-ANN-278098",
+        "OGDC-REPORT-283468-p096-1",
+        "OGDC-REPORT-283468-p059-3",
+        "OGDC-ANN-275829"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "h07",
+      "ticker": "HBL",
+      "query": "IMF programme and the economic outlook",
+      "relevant": [
+        "HBL-REPORT-275409-p005-1",
+        "HBL-REPORT-280977-p005-0",
+        "HBL-REPORT-280977-p005-1",
+        "HBL-REPORT-280977-p006-2",
+        "HBL-REPORT-280977-p007-0"
+      ],
+      "returned": [
+        "HBL-REPORT-280977-p006-2",
+        "HBL-REPORT-280977-p007-0",
+        "HBL-REPORT-280977-p005-1",
+        "HBL-REPORT-275409-p005-1",
+        "HBL-REPORT-275409-p007-0"
+      ],
+      "recall@5": 0.8,
+      "rr": 1.0
+    },
+    {
+      "id": "h08",
+      "ticker": "FFC",
+      "query": "profit after tax higher than last year because of more fertilizer sales",
+      "relevant": [
+        "FFC-DECK-276757-p005"
+      ],
+      "returned": [
+        "FFC-REPORT-276333-p006-0",
+        "FFC-RESULT-2026-07-29-20260630HYR-UNSPECIFIED-152355",
+        "FFC-REPORT-281738-p005-0",
+        "FFC-RESULT-2026-04-29-20260331IQ-CONSOLIDATED-145950",
+        "FFC-REPORT-276333-p006-1"
+      ],
+      "recall@5": 0.0,
+      "rr": 0.0
+    },
+    {
+      "id": "h09",
+      "ticker": "HBL",
+      "query": "dividend declared by the board in April",
+      "relevant": [
+        "HBL-REPORT-275409-p006-1"
+      ],
+      "returned": [
+        "HBL-REPORT-280977-p006-1",
+        "HBL-REPORT-275409-p006-1",
+        "HBL-ANN-276336",
+        "HBL-REPORT-275409-p005-1",
+        "HBL-ANN-278301"
+      ],
+      "recall@5": 1.0,
+      "rr": 0.5
+    },
+    {
+      "id": "h10",
+      "ticker": "SYS",
+      "query": "was the corporate briefing postponed or revoked",
+      "relevant": [
+        "SYS-ANN-20260604-d6b0982b",
+        "SYS-ANN-20260709-defd861e",
+        "SYS-ANN-277956",
+        "SYS-ANN-278038"
+      ],
+      "returned": [
+        "SYS-ANN-20260604-d6b0982b",
+        "SYS-ANN-20260709-defd861e",
+        "SYS-ANN-277956",
+        "SYS-ANN-278038",
+        "SYS-ANN-20260709-e4d67a5f"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "h11",
+      "ticker": "HUBC",
+      "query": "operational load factor of the power plants",
+      "relevant": [
+        "HUBC-DECK-282110-p005"
+      ],
+      "returned": [
+        "HUBC-DECK-282110-p001",
+        "HUBC-ANN-282110",
+        "HUBC-DECK-282110-p005",
+        "HUBC-REPORT-283369-p038-0",
+        "HUBC-REPORT-283369-p038-1"
+      ],
+      "recall@5": 1.0,
+      "rr": 0.3333333333333333
+    },
+    {
+      "id": "h12",
+      "ticker": "OGDC",
+      "query": "did the company receive money owed by the power sector",
+      "relevant": [
+        "OGDC-ANN-275125",
+        "OGDC-ANN-277817",
+        "OGDC-ANN-279055",
+        "OGDC-REPORT-283468-p096-0"
+      ],
+      "returned": [
+        "OGDC-ANN-279055",
+        "OGDC-ANN-277817",
+        "OGDC-ANN-275125",
+        "OGDC-ANN-281200",
+        "OGDC-ANN-283329"
+      ],
+      "recall@5": 0.75,
+      "rr": 1.0
+    }
+  ],
+  "by_difficulty": {
+    "easy": {
+      "queries": 1,
+      "recall@5": 0.75,
+      "mrr": 1.0
+    },
+    "hard": {
+      "queries": 4,
+      "recall@5": 0.6875,
+      "mrr": 0.75
+    },
+    "medium": {
+      "queries": 7,
+      "recall@5": 0.8285714285714285,
+      "mrr": 0.6904761904761905
+    }
+  }
+}

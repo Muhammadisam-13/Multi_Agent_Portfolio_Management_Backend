@@ -22,6 +22,7 @@ from typing import Sequence
 
 from bs4 import BeautifulSoup
 
+from mizan.fetcher.base import FetchResult
 from mizan.fetcher.cache import PageCache, load_page
 from mizan.fetcher.client import PoliteClient
 from mizan.fetcher.config import ROOT, FetchConfig
@@ -56,12 +57,6 @@ class ResultRow:
     eps: str
     agm: str
     book_closure: str
-
-
-@dataclass
-class FetchResult:
-    items: list[EvidenceItem]
-    warnings: list[str]
 
 
 # --- parsing ------------------------------------------------------------------

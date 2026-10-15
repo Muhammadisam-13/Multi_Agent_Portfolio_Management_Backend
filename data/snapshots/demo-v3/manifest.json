@@ -1,0 +1,71 @@
+{
+  "created_utc": "2026-10-15T09:50:23+00:00",
+  "item_count": 976,
+  "items_by_ticker": {
+    "FFC": 169,
+    "HBL": 159,
+    "HUBC": 155,
+    "LUCK": 153,
+    "OGDC": 162,
+    "SYS": 178
+  },
+  "items_by_type": {
+    "announcement": 131,
+    "financial_results": 23,
+    "presentation_section": 24,
+    "price": 738,
+    "report_section": 60
+  },
+  "date_range": [
+    "2026-04-13",
+    "2026-10-12"
+  ],
+  "items_sha256": "52bceffb0f30c7bc7e6dc5e988e5d824dff4574a9edb4d98421851c2fe38aca2",
+  "tickers": [
+    "OGDC",
+    "LUCK",
+    "HBL",
+    "FFC",
+    "HUBC",
+    "SYS"
+  ],
+  "results_fetcher_notes": [
+    "dropped repeated posting: Systems Limited, 2026-08-27 12:49:45 (identical to an earlier row)",
+    "results table page fetched 2026-10-13T08:19:42.942631+00:00, 1375 rows from 2026-04-13 to 2026-10-12"
+  ],
+  "announcements_window": [
+    "2026-04-13",
+    "2026-10-12"
+  ],
+  "announcements_notes": [
+    "OGDC: report 283468 (Transmission of Annual Report for the Year Ended J): 6 narrative chunks",
+    "OGDC: report 276351 (Transmission of Quarterly Report for the Period En): 6 narrative chunks",
+    "OGDC: 23 announcements (4 long, 1 needs_ocr, 1 no_document, 17 text)",
+    "LUCK: report 282262 (Transmission of Annual Report for the year ended -): 6 narrative chunks",
+    "LUCK: 20 announcements (2 long, 11 needs_ocr, 6 no_document, 1 text)",
+    "HBL: report 280977 (Transmission of Half Yearly Report for the Period): 5 narrative chunks",
+    "HBL: report 275409 (Transmission of Quarterly Report for the Period En): 6 narrative chunks",
+    "HBL: report 275290 (Corporate Briefing Sessions of HBL): 5 narrative chunks",
+    "HBL: 16 announcements (3 long, 8 needs_ocr, 3 no_document, 2 text)",
+    "FFC: report 281738 (Transmission of Quarterly Report for the Period En): 4 narrative chunks",
+    "FFC: report 280737 (General Meetings / Briefing Sessions): 2 narrative chunks",
+    "FFC: report 280736 (Notice of Corporate Briefing Session): 2 narrative chunks",
+    "FFC: report 276757 (Final Presentation - Second Corporate Briefing (CB): 3 narrative chunks",
+    "FFC: report 276655 (Presentation of Second Corporate Briefing 2026): 2 narrative chunks",
+    "FFC: report 276333 (Transmission of Quarterly Report for the Period En): 3 narrative chunks",
+    "FFC: 27 announcements (7 long, 10 needs_ocr, 8 no_document, 2 text)",
+    "HUBC: report 283369 (Transmission of Annual Report for the Year Ended J): 6 narrative chunks",
+    "HUBC: report 282110 (Presentation for the Corporate Briefing Session of): 4 narrative chunks",
+    "HUBC: 18 announcements (3 long, 13 needs_ocr, 1 no_document, 1 text)",
+    "SYS: report 281936 (Transmission of Half Yearly Report for the Period): 6 narrative chunks",
+    "SYS: report 278089 (Presentation of Corporate Briefing Session): 6 narrative chunks",
+    "SYS: report 277949 (Transmission of Quarterly Report for the Period En): 6 narrative chunks",
+    "SYS: report 274532 (Transmission of Annual Report for the Year Ended D): 6 narrative chunks",
+    "SYS: 27 announcements (5 long, 2 needs_ocr, 3 no_document, 1 partial, 16 text)"
+  ],
+  "price_range": [
+    "2026-04-13",
+    "2026-10-12"
+  ],
+  "psxdata_version": "1.2.0"
+}

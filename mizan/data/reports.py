@@ -1,0 +1,227 @@
+"""Long reports (annual / quarterly) -> a few narrative chunks as EvidenceItems.
+
+A 229-page annual report is far too big to hand to a local model whole, and most of it is financial
+statements, notes and governance boilerplate. This module keeps the passages that read like narrative
+(reviews, outlook, risks, operations) and drops number tables.
+
+HOW THE SELECTION WORKS (a heuristic, deliberately simple and easy to inspect):
+  1. find the narrative zone: from the first page headed as a review / report / message (Chairman,
+     Managing Director, CEO, Directors' Report, Management Discussion) to the page before the auditor's
+     report, so financial statements and their notes are never searched;
+  2. split each page of the zone into chunks of about `target_chars` characters and drop chunks that
+     are mostly numbers (tables) or too short to say anything;
+  3. score the rest by narrative keywords (outlook, risk, performance, ...) minus boilerplate words
+     (committee terms of reference, attendance, ...);
+  4. keep the `max_chunks` best, at most `per_page` from one page, in page order.
+Every kept chunk records its page number, so a reader can open the PDF and check it. The selection
+has no model and no learning in it; if it keeps the wrong pages for a company, the keyword lists
+below are the place to tune it.
+"""
+
+import re
+from collections import Counter
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
+
+import pymupdf
+
+from mizan.data.pdf_extract import extract_pages
+from mizan.schemas import EvidenceItem
+
+SOURCE = "psx_report"
+TYPE = "report_section"
+
+MIN_CHARS = 350                  # shorter chunks are headers, page furniture, signature blocks
+MAX_DIGIT_FRACTION = 0.25        # above this share of digits a chunk is a table, not prose (prose with figures sits at 0.01-0.10)
+
+# (pattern, weight): headings and phrases that mark narrative content
+POSITIVE = [
+    (r"\boutlook\b", 4), (r"\bgoing forward\b|\blooking ahead\b|\bfuture\b", 2),
+    (r"\bdirectors['’]? report\b|\bchairman['’]?s? (?:review|message)\b|\b(?:managing director|ceo)['’]?s? (?:review|message)\b", 3),
+    (r"\bmanagement discussion\b|\boverview\b|\breview\b", 1),
+    (r"\bperformance\b|\bgrowth\b|\bincrease[ds]?\b|\bdecrease[ds]?\b|\bdeclined?\b", 1),
+    (r"\brisks?\b|\bchallenges?\b|\bopportunit", 2),
+    (r"\bstrategy\b|\bstrategic\b|\bprojects?\b|\bproduction\b|\bdiscover", 1),
+    (r"\binflation\b|\binterest rate\b|\bexchange rate\b|\bcommodity\b|\bdemand\b|\bmarket share\b", 2),
+    (r"\bdividend\b|\bprofit after tax\b|\brevenue\b|\bsales\b", 1),
+]
+# boilerplate that fills reports but tells an investor little
+NEGATIVE = [
+    (r"terms of reference", 3), (r"\battendance\b|\battended\b", 2), (r"code of conduct", 2),
+    (r"\bcompliance with\b|\bcode of corporate governance\b", 2), (r"\bannexure\b|\bproxy form\b", 3),
+    (r"\bwhistle ?blow", 2), (r"\bdisclaimer\b", 2),
+    # climate / ESG disclosure language is keyword-rich (risk, opportunity, demand) but is regulatory detail,
+    # not what moves a share price; the review and outlook pages should win
+    (r"climate-related|tcfd|scenario analysis|greenhouse|emissions|net.?zero|\besg\b|sustainab", 2),
+]
+
+
+@dataclass(frozen=True)
+class Chunk:
+    page: int          # 1-based page number in the PDF
+    index: int         # chunk number within the page
+    text: str
+    score: float
+
+
+PERIODIC_REPORT = re.compile(r"\b(annual|quarterly|half[- ]?yearly|interim|nine[- ]month)\s+report\b", re.IGNORECASE)
+
+
+def is_periodic_report(title: str) -> bool:
+    """True for announcements that transmit an annual / quarterly / half-yearly report (not results tables, AGM notices or slide decks)."""
+    return bool(PERIODIC_REPORT.search(title))
+
+
+def _digit_fraction(text: str) -> float:
+    chars = [c for c in text if not c.isspace()]
+    return sum(c.isdigit() for c in chars) / len(chars) if chars else 1.0
+
+
+def _score(text: str) -> float:
+    low = text.lower()
+    pos = sum(w * min(len(re.findall(p, low)), 3) for p, w in POSITIVE)
+    neg = sum(w * min(len(re.findall(p, low)), 3) for p, w in NEGATIVE)
+    return float(pos - neg)
+
+
+def _split(text: str, target: int) -> list[str]:
+    """Cut text into pieces of about `target` characters at sentence ends."""
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    pieces, current = [], ""
+    for s in sentences:
+        if current and len(current) + len(s) > target:
+            pieces.append(current)
+            current = ""
+        current = f"{current} {s}".strip()
+    if current:
+        pieces.append(current)
+    return pieces
+
+
+REVIEW_HEADING = re.compile(
+    r"(chairman|managing director|chief executive|\bceo\b|directors['’]?)\W{0,3}(?:s['’]?\W{0,3})?(review|report|message)"
+    r"|management discussion", re.IGNORECASE)
+AUDITOR_REPORT = re.compile(r"independent auditor|auditors['’] report", re.IGNORECASE)
+
+
+# A page that OPENS with a financial statement heading is where the narrative has ended. A short running header
+# ("Nine Monthly Report 2025-26 17 ...") may come first. Pages whose heading says "analysis", "ratios", "summary" or
+# "highlights" ("Analysis of statement of financial position") are part of the narrative, not a statement.
+FINANCIAL_STATEMENT_TOP = re.compile(
+    r"^.{0,70}?(?:(?:un)?consolidated\s+)?(?:condensed\s+)?(?:interim\s+)?"
+    r"(?:statements?\s+of\s+(?:financial position|profit|comprehensive income|cash flows|changes in equity)|notes to the)",
+    re.IGNORECASE)
+ANALYSIS_HEADING = re.compile(r"\banalys[ie]s\b|\bratios?\b|\bsummary\b|\bhighlights\b", re.IGNORECASE)
+CONTENTS = re.compile(r"\bcontents?\b", re.IGNORECASE)
+
+
+def _is_statement_page(text: str) -> bool:
+    head = text[:200]
+    return bool(FINANCIAL_STATEMENT_TOP.search(head)) and not ANALYSIS_HEADING.search(head)
+
+
+def narrative_zone(pages: list[str]) -> tuple[int, int]:
+    """(first, last) 0-based page indexes to search: from the first review/report heading to the end of the narrative.
+
+    A contents page lists "Chairman's Review ... Independent Auditor's Report" and would fool both searches, so
+    everything up to the last contents page (found in the first 12 pages) is skipped. The narrative ends at the
+    auditor's report or at the first page that opens with a financial statement heading, which must come a
+    sensible distance after the start (a tenth of the document, at least 1 page).
+    """
+    n = len(pages)
+    toc_end = max((i for i in range(min(12, n)) if CONTENTS.search(pages[i][:100])), default=-1)
+    first = toc_end + 1
+    start = next((i for i in range(first, n) if REVIEW_HEADING.search(pages[i][:400])), min(first, max(n - 1, 0)))
+    min_end = start + max(1, n // 10)
+    end = next((i for i in range(min_end, n)
+                if AUDITOR_REPORT.search(pages[i][:600]) or _is_statement_page(pages[i])), n)
+    return start, end - 1
+
+
+def select_chunks(pdf_path: str | Path, max_chunks: int = 10, target_chars: int = 1800, per_page: int = 2) -> list[Chunk]:
+    with pymupdf.open(pdf_path) as doc:
+        pages = [" ".join(p.get_text().replace("�", "'").split()) for p in doc]
+    first, last = narrative_zone(pages)
+
+    candidates: list[Chunk] = []
+    for idx in range(first, last + 1):
+        for k, piece in enumerate(_split(pages[idx], target_chars)):
+            if len(piece) < MIN_CHARS or _digit_fraction(piece) > MAX_DIGIT_FRACTION:
+                continue
+            candidates.append(Chunk(idx + 1, k, piece, _score(piece)))
+
+    chosen, per_page_count = [], Counter()
+    for c in sorted((c for c in candidates if c.score > 0), key=lambda c: (-c.score, c.page, c.index)):
+        if per_page_count[c.page] < per_page:
+            chosen.append(c)
+            per_page_count[c.page] += 1
+        if len(chosen) == max_chunks:
+            break
+    return sorted(chosen, key=lambda c: (c.page, c.index))
+
+
+def chunk_items(ticker: str, doc_id: str, day: date, title: str, pdf_path: str | Path,
+                max_chunks: int = 10, target_chars: int = 1800) -> list[EvidenceItem]:
+    """Narrative chunks of one long report as EvidenceItems dated with the report's announcement date."""
+    ticker = ticker.upper()
+    label = title.strip().rstrip(".")
+    with pymupdf.open(pdf_path) as doc:
+        pages = len(doc)
+    chunks = select_chunks(pdf_path, max_chunks, target_chars)
+    if not chunks:
+        return [EvidenceItem(
+            id=f"{ticker}-REPORT-{doc_id}-none", ticker=ticker, source=SOURCE, type=TYPE, date=day,
+            text=(f"{ticker} report '{label}' (announced {day.isoformat()}, {pages} pages): no narrative passages could be "
+                  f"selected from its text layer (it may be scanned and need OCR)."))]
+    return [EvidenceItem(
+        id=f"{ticker}-REPORT-{doc_id}-p{c.page:03d}-{c.index}", ticker=ticker, source=SOURCE, type=TYPE, date=day,
+        text=f"{ticker} report '{label}' (announced {day.isoformat()}), page {c.page} of {pages}: {c.text}")
+        for c in chunks]
+
+
+# --- investor presentations (slide decks) -------------------------------------------
+
+PRESENTATION = re.compile(r"presentation|briefing", re.IGNORECASE)
+DECK_MIN_CHARS = 200              # slides are short; a group of slides below this says nothing
+DECK_MAX_DIGIT_FRACTION = 0.40    # slides carry more figures than prose does
+
+
+def is_presentation(title: str) -> bool:
+    """True for announcements that attach investor slides or a corporate briefing."""
+    return bool(PRESENTATION.search(title))
+
+
+def select_deck_chunks(pdf_path: str | Path, max_chunks: int = 6, target_chars: int = 1500) -> list[Chunk]:
+    """Group consecutive slides into chunks of about target_chars, keep the best-scoring ones in slide order.
+
+    A deck has no financial statements to cut off, so the whole document is used. Chunk.page is the first slide.
+    """
+    groups: list[tuple[int, str]] = []
+    buf: list[str] = []
+    first = 0
+    for number, text in enumerate(extract_pages(pdf_path), start=1):
+        if not text:
+            continue
+        first = first or number
+        buf.append(text)
+        if sum(len(t) for t in buf) >= target_chars:
+            groups.append((first, " ".join(buf)))
+            buf, first = [], 0
+    if buf:
+        groups.append((first, " ".join(buf)))
+
+    candidates = [Chunk(page, k, text, _score(text)) for k, (page, text) in enumerate(groups)
+                  if len(text) >= DECK_MIN_CHARS and _digit_fraction(text) <= DECK_MAX_DIGIT_FRACTION]
+    ranked = [c for c in sorted(candidates, key=lambda c: (-c.score, c.page)) if c.score > 0] or candidates
+    return sorted(ranked[:max_chunks], key=lambda c: c.page)
+
+
+def deck_items(ticker: str, doc_id: str, day: date, title: str, pdf_path: str | Path,
+               max_chunks: int = 6, target_chars: int = 1500) -> list[EvidenceItem]:
+    """Narrative passages of one investor presentation as EvidenceItems dated with the announcement date."""
+    ticker, label = ticker.upper(), title.strip().rstrip(".")
+    return [EvidenceItem(
+        id=f"{ticker}-DECK-{doc_id}-p{c.page:03d}", ticker=ticker, source="psx_presentation", type="presentation_section",
+        date=day, text=f"{ticker} presentation '{label}' (announced {day.isoformat()}), from slide {c.page}: {c.text}")
+        for c in select_deck_chunks(pdf_path, max_chunks, target_chars)]

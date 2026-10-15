@@ -36,10 +36,10 @@ class Throttle:
 
 
 class PoliteClient:
-    """GET pages one at a time with a minimum gap between requests.
+    """GET/POST one request at a time with a minimum gap between requests.
 
-    session, sleep and clock can be replaced so tests never touch the network
-    or really wait.
+    The User-Agent always names the project. session, sleep and clock can be replaced so
+    tests never touch the network or really wait.
     """
 
     def __init__(self, config: FetchConfig, session=None,
@@ -50,19 +50,29 @@ class PoliteClient:
         self._sleep = sleep
         self.throttle = Throttle(config.min_interval_s, sleep, clock)
 
-    def get_text(self, url: str) -> str:
+    def get_text(self, url: str, headers: dict | None = None) -> str:
+        return self._request("GET", url, headers=headers).text
+
+    def get_bytes(self, url: str, headers: dict | None = None) -> bytes:
+        return self._request("GET", url, headers=headers).content
+
+    def post_text(self, url: str, data: dict, headers: dict | None = None) -> str:
+        return self._request("POST", url, data=data, headers=headers).text
+
+    def _request(self, method: str, url: str, data: dict | None = None, headers: dict | None = None):
         if not self.config.live:
             raise LiveFetchDisabled(f"live fetching is off, refusing to request {url}")
 
+        # the project User-Agent cannot be overridden by callers
+        all_headers = {**(headers or {}), "User-Agent": self.config.user_agent}
         failure: FetchError | None = None
         for attempt in range(self.config.max_retries + 1):
             self.throttle.wait()
             try:
-                resp = self.session.get(
-                    url,
-                    headers={"User-Agent": self.config.user_agent},
-                    timeout=self.config.timeout_s,
-                )
+                if method == "POST":
+                    resp = self.session.post(url, data=data, headers=all_headers, timeout=self.config.timeout_s)
+                else:
+                    resp = self.session.get(url, headers=all_headers, timeout=self.config.timeout_s)
             except requests.Timeout:
                 failure = FetchTimeout(f"timed out after {self.config.timeout_s}s: {url}")
             except requests.RequestException as exc:
@@ -70,7 +80,7 @@ class PoliteClient:
             else:
                 code = resp.status_code
                 if code == 200:
-                    return resp.text
+                    return resp
                 if code in (401, 403):
                     raise BlockedError(f"HTTP {code} from {url}; not retrying or working around it")
                 if code == 404:

@@ -1,10 +1,13 @@
 """Build a frozen evidence snapshot from PSX financial results and (optionally) psxdata prices.
 
-Both sources run from the local cache (data/cache/) unless --live is given. With --live,
+All sources run from the local cache (data/cache/) unless --live is given. With --live,
 missing data is fetched once and cached; cached prices are re-fetched only with --refresh-prices.
+--announcements adds PSX company announcements and their PDF text (decision D7) for --start..--end;
+--reports also adds narrative chunks from the long reports (annual/quarterly) and investor presentations found among them.
 
 Examples:
     python -m mizan.data.build_snapshot --name demo-v1 --tickers OGDC HUBC HBL --no-prices
+    python -m mizan.data.build_snapshot --name demo-v2 --tickers OGDC HUBC HBL         --start 2026-04-13 --end 2026-10-12 --announcements --reports
     python -m mizan.data.build_snapshot --name demo-v1 --tickers OGDC HUBC HBL \
         --start 2026-04-13 --end 2026-10-12 --live
 """
@@ -29,12 +32,17 @@ def main(argv=None) -> int:
     p.add_argument("--start", type=date.fromisoformat, help="first price date (needed unless --no-prices)")
     p.add_argument("--end", type=date.fromisoformat, help="last price date (needed unless --no-prices)")
     p.add_argument("--no-prices", action="store_true", help="skip the psxdata price loader")
+    p.add_argument("--announcements", action="store_true", help="add PSX announcements and their PDF text (needs --start/--end)")
+    p.add_argument("--reports", action="store_true", help="with --announcements: add narrative chunks of long reports")
+    p.add_argument("--report-chunks", type=int, default=10, help="narrative chunks kept per report")
     p.add_argument("--live", action="store_true", help="allow network requests for missing data (default: cache only)")
     p.add_argument("--refresh-prices", action="store_true", help="re-fetch cached price histories (needs --live)")
     p.add_argument("--out-dir", type=Path, default=ROOT / "data" / "snapshots")
     args = p.parse_args(argv)
-    if not args.no_prices and not (args.start and args.end):
-        p.error("--start and --end are required unless --no-prices is given")
+    if (not args.no_prices or args.announcements) and not (args.start and args.end):
+        p.error("--start and --end are required unless --no-prices is given and --announcements is off")
+    if args.reports and not args.announcements:
+        p.error("--reports needs --announcements (the reports are found among the announcements)")
 
     tickers = [t.upper() for t in args.tickers]
     items, meta = [], {"tickers": tickers}
@@ -46,6 +54,27 @@ def main(argv=None) -> int:
     for w in result.warnings:
         print(f"note: {w}")
     print(f"financial results: {len(result.items)} items")
+
+    if args.announcements:
+        from mizan.fetcher.announcements import AnnouncementsFetcher
+        handler = None
+        if args.reports:
+            from mizan.data.reports import chunk_items, deck_items, is_periodic_report, is_presentation
+
+            def handler(row, path):
+                if is_periodic_report(row.title):
+                    return chunk_items(row.symbol, row.doc_id, row.day, row.title, path, max_chunks=args.report_chunks)
+                if is_presentation(row.title):
+                    return deck_items(row.symbol, row.doc_id, row.day, row.title, path)
+                return []
+        ann = AnnouncementsFetcher(config, args.start, args.end, long_document_handler=handler).fetch(tickers)
+        items += ann.items
+        meta["announcements_window"] = [args.start.isoformat(), args.end.isoformat()]
+        meta["announcements_notes"] = ann.warnings
+        for w in ann.warnings:
+            print(f"note: {w}")
+        print(f"announcements: {sum(i.type == 'announcement' for i in ann.items)} items, "
+              f"report chunks: {sum(i.type == 'report_section' for i in ann.items)}")
 
     raw_prices = {}
     if not args.no_prices:

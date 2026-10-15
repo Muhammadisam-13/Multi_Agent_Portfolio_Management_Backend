@@ -21,6 +21,15 @@ class ExtractedText:
     needs_ocr: bool
 
 
+def extract_pages(path: str | Path) -> list[str]:
+    """Text of each page with whitespace collapsed; '' for a page without a text layer.
+
+    PSX PDFs often lose apostrophes (they come out as U+FFFD), so that character becomes an apostrophe.
+    """
+    with pymupdf.open(path) as doc:
+        return [" ".join(page.get_text().replace("�", "'").split()) for page in doc]
+
+
 def extract_text(path: str | Path) -> ExtractedText:
     with pymupdf.open(path) as doc:
         page_texts = [page.get_text().strip() for page in doc]

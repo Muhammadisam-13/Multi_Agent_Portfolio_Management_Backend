@@ -54,16 +54,19 @@ class PageCache:
         return CachedPage(text, url, fetched_utc, path)
 
 
-def load_page(namespace: str, url: str, config: FetchConfig, client: PoliteClient,
-              cache: PageCache, validate: Callable[[str], object],
-              now: datetime | None = None) -> tuple[CachedPage, str | None]:
+def load_cached(namespace: str, source: str, config: FetchConfig, cache: PageCache,
+                fetch: Callable[[], str], validate: Callable[[str], object],
+                now: datetime | None = None) -> tuple[CachedPage, str | None]:
     """Return (page, warning). Uses the cache unless live fetching is on and the copy is stale.
 
     - live off: the newest cached copy, or CacheMiss if there is none.
     - live on, fresh copy cached: the cached copy (no request).
-    - live on, no/stale copy: fetch, run validate() (raises if the page structure changed),
+    - live on, no/stale copy: fetch() it, run validate() (raises if the page structure changed),
       then cache it. If the fetch fails but an older copy exists, that copy is returned with a
       warning saying so; with no older copy the error propagates.
+
+    A refusal (BlockedError) is never swallowed into a cache fallback for a first fetch, and
+    callers decide what to do with the warning.
     """
     now = now or datetime.now(timezone.utc)
     cached = cache.latest(namespace)
@@ -77,11 +80,18 @@ def load_page(namespace: str, url: str, config: FetchConfig, client: PoliteClien
         return cached, None
 
     try:
-        text = client.get_text(url)
+        text = fetch()
         validate(text)
     except FetchError as exc:
         if cached is None:
             raise
         return cached, (f"live fetch of '{namespace}' failed ({type(exc).__name__}: {exc}); "
                         f"using cached copy from {cached.fetched_utc.isoformat()}")
-    return cache.put(namespace, text, url, now), None
+    return cache.put(namespace, text, source, now), None
+
+
+def load_page(namespace: str, url: str, config: FetchConfig, client: PoliteClient,
+              cache: PageCache, validate: Callable[[str], object],
+              now: datetime | None = None) -> tuple[CachedPage, str | None]:
+    """load_cached() for a page fetched with a plain GET of url."""
+    return load_cached(namespace, url, config, cache, lambda: client.get_text(url), validate, now)

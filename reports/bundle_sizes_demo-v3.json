@@ -1,0 +1,219 @@
+{
+  "snapshot": "demo-v3",
+  "as_of": "2026-10-12",
+  "method": "characters / 4 and / 3 (estimates, not a real tokenizer)",
+  "bundles": [
+    {
+      "ticker": "FFC",
+      "as_of": "2026-10-12",
+      "items": 169,
+      "chars": 55170,
+      "tokens_estimate": {
+        "4_chars_per_token": 13793,
+        "3_chars_per_token": 18390
+      },
+      "by_type": {
+        "announcement": {
+          "items": 27,
+          "chars": 16089,
+          "share_of_chars": 0.292
+        },
+        "financial_results": {
+          "items": 3,
+          "chars": 909,
+          "share_of_chars": 0.016
+        },
+        "presentation_section": {
+          "items": 9,
+          "chars": 12534,
+          "share_of_chars": 0.227
+        },
+        "price": {
+          "items": 123,
+          "chars": 16073,
+          "share_of_chars": 0.291
+        },
+        "report_section": {
+          "items": 7,
+          "chars": 9565,
+          "share_of_chars": 0.173
+        }
+      }
+    },
+    {
+      "ticker": "HBL",
+      "as_of": "2026-10-12",
+      "items": 159,
+      "chars": 53628,
+      "tokens_estimate": {
+        "4_chars_per_token": 13407,
+        "3_chars_per_token": 17876
+      },
+      "by_type": {
+        "announcement": {
+          "items": 16,
+          "chars": 6173,
+          "share_of_chars": 0.115
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 1152,
+          "share_of_chars": 0.021
+        },
+        "presentation_section": {
+          "items": 5,
+          "chars": 10338,
+          "share_of_chars": 0.193
+        },
+        "price": {
+          "items": 123,
+          "chars": 16117,
+          "share_of_chars": 0.301
+        },
+        "report_section": {
+          "items": 11,
+          "chars": 19848,
+          "share_of_chars": 0.37
+        }
+      }
+    },
+    {
+      "ticker": "HUBC",
+      "as_of": "2026-10-12",
+      "items": 155,
+      "chars": 44404,
+      "tokens_estimate": {
+        "4_chars_per_token": 11101,
+        "3_chars_per_token": 14802
+      },
+      "by_type": {
+        "announcement": {
+          "items": 18,
+          "chars": 8274,
+          "share_of_chars": 0.186
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 1198,
+          "share_of_chars": 0.027
+        },
+        "presentation_section": {
+          "items": 4,
+          "chars": 8498,
+          "share_of_chars": 0.191
+        },
+        "price": {
+          "items": 123,
+          "chars": 16323,
+          "share_of_chars": 0.368
+        },
+        "report_section": {
+          "items": 6,
+          "chars": 10111,
+          "share_of_chars": 0.228
+        }
+      }
+    },
+    {
+      "ticker": "LUCK",
+      "as_of": "2026-10-12",
+      "items": 153,
+      "chars": 34115,
+      "tokens_estimate": {
+        "4_chars_per_token": 8529,
+        "3_chars_per_token": 11372
+      },
+      "by_type": {
+        "announcement": {
+          "items": 20,
+          "chars": 6426,
+          "share_of_chars": 0.188
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 1097,
+          "share_of_chars": 0.032
+        },
+        "price": {
+          "items": 123,
+          "chars": 16240,
+          "share_of_chars": 0.476
+        },
+        "report_section": {
+          "items": 6,
+          "chars": 10352,
+          "share_of_chars": 0.303
+        }
+      }
+    },
+    {
+      "ticker": "OGDC",
+      "as_of": "2026-10-12",
+      "items": 162,
+      "chars": 71433,
+      "tokens_estimate": {
+        "4_chars_per_token": 17859,
+        "3_chars_per_token": 23811
+      },
+      "by_type": {
+        "announcement": {
+          "items": 23,
+          "chars": 33520,
+          "share_of_chars": 0.469
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 1205,
+          "share_of_chars": 0.017
+        },
+        "price": {
+          "items": 123,
+          "chars": 16333,
+          "share_of_chars": 0.229
+        },
+        "report_section": {
+          "items": 12,
+          "chars": 20375,
+          "share_of_chars": 0.285
+        }
+      }
+    },
+    {
+      "ticker": "SYS",
+      "as_of": "2026-10-12",
+      "items": 178,
+      "chars": 93296,
+      "tokens_estimate": {
+        "4_chars_per_token": 23324,
+        "3_chars_per_token": 31099
+      },
+      "by_type": {
+        "announcement": {
+          "items": 27,
+          "chars": 31305,
+          "share_of_chars": 0.336
+        },
+        "financial_results": {
+          "items": 4,
+          "chars": 938,
+          "share_of_chars": 0.01
+        },
+        "presentation_section": {
+          "items": 6,
+          "chars": 15991,
+          "share_of_chars": 0.171
+        },
+        "price": {
+          "items": 123,
+          "chars": 16125,
+          "share_of_chars": 0.173
+        },
+        "report_section": {
+          "items": 18,
+          "chars": 28937,
+          "share_of_chars": 0.31
+        }
+      }
+    }
+  ]
+}
