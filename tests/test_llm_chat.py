@@ -143,15 +143,38 @@ def test_think_block_is_stripped_without_a_schema_too():
 
 # --- bad output: one retry, then BadOutput -----------------------------------------------------------
 
-def test_invalid_json_is_retried_once_with_the_problem_shown_to_the_model():
+def test_invalid_json_is_retried_once_with_the_problem_named_but_the_reply_not_resent():
     c = client(Resp(body=reply("Sure! Here you go: ok")), Resp(body=reply(OK)))
     r = c.chat(MESSAGES, SCHEMA)
     assert r.parsed["status"] == "ok" and len(c.session.posts) == 2
     retry_messages = c.session.posts[1]["json"]["messages"]
-    assert retry_messages[:2] == MESSAGES
-    assert retry_messages[2] == {"role": "assistant", "content": "Sure! Here you go: ok"}
-    assert retry_messages[3]["role"] == "user" and "not valid JSON" in retry_messages[3]["content"]
+    assert retry_messages[:2] == MESSAGES and len(retry_messages) == 3       # no assistant turn: it would not fit the context
+    assert retry_messages[2]["role"] == "user" and "not valid JSON" in retry_messages[2]["content"]
+    assert "Here you go" not in json.dumps(retry_messages) and "Keep it short" not in retry_messages[2]["content"]
     assert c.session.posts[1]["json"]["format"] == SCHEMA
+
+
+def test_a_cut_off_reply_is_retried_with_a_request_to_keep_it_short():
+    cut = reply('{"status": "ok", "note": "' + "very long " * 300, done_reason="length")
+    c = client(Resp(body=cut), Resp(body=reply(OK)), num_predict=1024)
+    assert c.chat(MESSAGES, SCHEMA).parsed["status"] == "ok"
+    retry_messages = c.session.posts[1]["json"]["messages"]
+    assert retry_messages[:2] == MESSAGES and len(retry_messages) == 3 and "very long" not in retry_messages[2]["content"]
+    assert "cut off at the 1024-token limit" in retry_messages[2]["content"]
+    assert "must fit in 1024 tokens" in retry_messages[2]["content"]
+    assert len(retry_messages[2]["content"]) < 400                            # the retry adds a short note, nothing more
+
+
+def test_an_unusable_reply_logs_its_tail_but_the_error_does_not_carry_it(caplog):
+    tail = "TAIL-MARKER " + "x" * 150
+    cut = reply('{"status": "ok", "note": "' + "y" * 500 + tail, done_reason="length")
+    with caplog.at_level("WARNING", logger="mizan.llm.ollama"), pytest.raises(BadOutput) as info:
+        client(Resp(body=cut), Resp(body=cut)).chat(MESSAGES, SCHEMA)
+    logged = [r.getMessage() for r in caplog.records]
+    assert len(logged) == 2 and all("TAIL-MARKER" in m and "done_reason=length" in m for m in logged)
+    assert "y" * 300 not in logged[0]                                         # only the last 200 characters
+    assert "reply 1 of 2" in logged[0] and "reply 2 of 2" in logged[1]
+    assert "TAIL-MARKER" not in str(info.value) and "y" * 20 not in str(info.value)
 
 
 def test_schema_mismatch_is_retried_then_bad_output():

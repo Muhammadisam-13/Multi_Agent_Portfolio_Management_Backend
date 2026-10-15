@@ -15,6 +15,7 @@ HTTP session shaped like the responses above.
 """
 
 import json
+import logging
 import re
 import time
 
@@ -27,12 +28,18 @@ from mizan.llm.schema_check import schema_errors
 # so a missing model is recognised by this status alone and the server's own text is passed on in the message.
 MODEL_MISSING_STATUS = 404
 
+log = logging.getLogger(__name__)
+
 THINK_BLOCK = re.compile(r"<think>.*?</think>\s*", re.DOTALL | re.IGNORECASE)
 
 # Sent after a reply that is not schema-valid JSON. The options are deterministic (temperature 0, fixed seed), so repeating
-# the same request would most likely repeat the same reply; showing the model its reply and the problem changes the prompt.
-RETRY_PROMPT = ("That reply could not be used: {problem}. Reply again with only a JSON object that matches the requested "
-                "schema, and nothing else.")
+# the same request would most likely repeat the same reply; naming the problem changes the prompt. The bad reply itself is not
+# sent back: it can be as long as num_predict, and the prompt, that reply and a new reply of up to num_predict tokens would not
+# fit together in a 4096-token context (decision D13, 2026-10-16).
+RETRY_PROMPT = ("Your previous reply could not be used: {problem}. Reply again with only a JSON object that matches the "
+                "requested schema, and nothing else.")
+SHORTER = " Keep it short: the whole reply must fit in {num_predict} tokens."
+LOG_TAIL_CHARS = 200            # how much of an unusable reply goes to the server log (never to the API error)
 
 
 class OllamaClient:
@@ -81,14 +88,17 @@ class OllamaClient:
     def chat(self, messages: list[dict], schema: dict | None = None) -> ChatResult:
         """One non-streaming chat call. With a schema: one retry if the reply is not schema-valid JSON, then BadOutput."""
         messages = [dict(m) for m in messages]
-        result, problem = self._read_reply(self._post_chat(messages, schema), schema)
+        data = self._post_chat(messages, schema)
+        result, problem = self._read_reply(data, schema)
         if problem is None:
             return result
-        retry = [*messages, {"role": "assistant", "content": result.text},
-                 {"role": "user", "content": RETRY_PROMPT.format(problem=problem)}]
-        result, problem = self._read_reply(self._post_chat(retry, schema), schema)
+        _log_unusable(self.model, 1, problem, data)
+        note = RETRY_PROMPT.format(problem=problem) + (SHORTER.format(num_predict=self.num_predict) if _cut_off(data) else "")
+        data = self._post_chat([*messages, {"role": "user", "content": note}], schema)
+        result, problem = self._read_reply(data, schema)
         if problem is None:
             return result
+        _log_unusable(self.model, 2, problem, data)
         raise BadOutput(f"Model '{self.model}' did not return JSON matching the schema after 2 attempts (last problem: {problem}).")
 
     def _chat_body(self, messages: list[dict], schema: dict | None) -> dict:
@@ -137,7 +147,7 @@ class OllamaClient:
         parsed, problem = None, None
         if schema is not None:
             parsed, problem = _parse_against(text, schema)
-            if problem and data.get("done_reason") == "length":
+            if problem and _cut_off(data):
                 problem += f" (the reply was cut off at the {self.num_predict}-token limit)"
         return ChatResult(
             text=text,
@@ -175,6 +185,17 @@ class OllamaClient:
                 raise LLMUnavailable(f"Ollama at {self.base_url} sent an unexpected answer for {path}.")
             return None
         return data
+
+
+def _cut_off(data: dict) -> bool:
+    return data.get("done_reason") == "length"
+
+
+def _log_unusable(model: str, attempt: int, problem: str, data: dict) -> None:
+    """The end of the raw reply goes to the server log only: it is model output, not a message for the UI."""
+    content = data["message"]["content"]
+    log.warning("Model '%s' reply %d of 2 is unusable: %s. done_reason=%s, %d characters, last %d: %r", model, attempt, problem,
+                data.get("done_reason"), len(content), LOG_TAIL_CHARS, content[-LOG_TAIL_CHARS:])
 
 
 def _parse_against(text: str, schema: dict) -> tuple[dict | None, str | None]:
