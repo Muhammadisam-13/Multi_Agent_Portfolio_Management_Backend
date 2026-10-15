@@ -20,7 +20,7 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Sequence
+from typing import Callable, Sequence
 
 from bs4 import BeautifulSoup
 
@@ -169,7 +169,8 @@ class AnnouncementsFetcher:
     def __init__(self, config: FetchConfig, date_from: date, date_to: date,
                  client: PoliteClient | None = None, session: DpsSession | None = None,
                  cache: PageCache | None = None, pdf_cache: PdfCache | None = None,
-                 page_size: int = 50, max_pages: int = 6, max_pdf_pages: int = 8, max_text_chars: int = 4000):
+                 page_size: int = 50, max_pages: int = 6, max_pdf_pages: int = 8, max_text_chars: int = 4000,
+                 long_document_handler: Callable[[AnnouncementRow, Path], list[EvidenceItem]] | None = None):
         if date_from > date_to:
             raise ValueError("date_from must not be after date_to")
         self.config, self.date_from, self.date_to = config, date_from, date_to
@@ -179,6 +180,8 @@ class AnnouncementsFetcher:
         self.pdf_cache = pdf_cache or PdfCache(config.cache_dir)
         self.page_size, self.max_pages = page_size, max_pages
         self.max_pdf_pages, self.max_text_chars = max_pdf_pages, max_text_chars
+        # called with (row, pdf path) for documents over max_pdf_pages (annual/quarterly reports); returns extra items
+        self.long_document_handler = long_document_handler
 
     def fetch(self, tickers: Sequence[str]) -> FetchResult:
         items: list[EvidenceItem] = []
@@ -195,6 +198,10 @@ class AnnouncementsFetcher:
                 doc = self._document(row, warnings)
                 statuses[doc.status] = statuses.get(doc.status, 0) + 1
                 items.append(row_to_item(row, doc))
+                if doc.status == "long" and self.long_document_handler is not None:
+                    extra = self.long_document_handler(row, self.pdf_cache.path(row.doc_id))
+                    items += extra
+                    warnings.append(f"{ticker}: report {row.doc_id} ({row.title[:50].strip()}): {len(extra)} narrative chunks")
             if not rows:
                 warnings.append(f"{ticker}: no announcements between {self.date_from} and {self.date_to}")
             else:

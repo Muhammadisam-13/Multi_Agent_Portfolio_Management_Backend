@@ -306,3 +306,29 @@ def test_announcements_respect_the_as_of_date(tmp_path):
 def test_window_must_be_ordered():
     with pytest.raises(ValueError):
         AnnouncementsFetcher(FetchConfig(), date(2026, 10, 1), date(2026, 9, 1))
+
+
+def test_long_documents_are_handed_to_the_handler_and_its_items_are_added(tmp_path):
+    from mizan.schemas import EvidenceItem
+
+    pdfs = good_pdfs(tmp_path)
+    pdfs["900002"] = pdf_bytes(tmp_path, [f"page {i} text " * 20 for i in range(10)])      # 10 pages: over the limit
+    seen = []
+
+    def handler(row, path):
+        seen.append((row.doc_id, path.name))
+        return [EvidenceItem(f"ALPH-REPORT-{row.doc_id}-p001-0", "ALPH", "psx_report", "report_section", row.day, "chunk")]
+
+    result = make_fetcher(tmp_path / "c", client=FakeClient(pdfs), long_document_handler=handler).fetch(["ALPH"])
+    assert seen == [("900002", "900002.pdf")]
+    ids = {i.id for i in result.items}
+    assert "ALPH-REPORT-900002-p001-0" in ids and "ALPH-ANN-900002" in ids           # the announcement itself stays
+    assert "10 pages long" in next(i for i in result.items if i.id == "ALPH-ANN-900002").text
+    assert any("report 900002" in w and "1 narrative chunks" in w for w in result.warnings)
+
+
+def test_without_a_handler_long_documents_only_keep_their_title(tmp_path):
+    pdfs = good_pdfs(tmp_path)
+    pdfs["900002"] = pdf_bytes(tmp_path, [f"page {i} text " * 20 for i in range(10)])
+    result = make_fetcher(tmp_path / "c", client=FakeClient(pdfs)).fetch(["ALPH"])
+    assert not any(i.type == "report_section" for i in result.items)
