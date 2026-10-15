@@ -4,7 +4,15 @@ from datetime import date
 import pymupdf
 import pytest
 
-from mizan.data.reports import chunk_items, is_periodic_report, narrative_zone, select_chunks
+from mizan.data.reports import (
+    chunk_items,
+    deck_items,
+    is_periodic_report,
+    is_presentation,
+    narrative_zone,
+    select_chunks,
+    select_deck_chunks,
+)
 
 NARRATIVE = ("During the year the company increased production and revenue, and the directors review the performance "
              "of its projects. The outlook is positive: demand remains strong, although inflation and interest rate "
@@ -171,3 +179,55 @@ def test_a_running_header_before_the_statement_heading_still_ends_the_zone():
 def test_analysis_sections_do_not_end_the_zone(heading):
     pages = ["cover", "contents", "Directors' Report text"] + ["narrative"] * 5 + [heading] + ["narrative"] * 5
     assert narrative_zone(pages)[1] == len(pages) - 1
+
+
+@pytest.mark.parametrize("title, expected", [
+    ("Presentation for the Corporate Briefing Session of The Hub Power Company Limited", True),
+    ("Final Presentation - Second Corporate Briefing (CBS) of 2026", True),
+    ("Notice of Corporate Briefing Session", True),
+    ("Transmission of Annual Report", False),
+    ("Material Information", False),
+])
+def test_presentations_are_recognised_by_title(title, expected):
+    assert is_presentation(title) is expected
+
+
+SLIDES = ["Investor briefing Q1 2026",
+          "Agenda: company at a glance, performance, outlook",
+          "Performance: revenue growth of 15% and profit increased on strong demand in the Middle East.",
+          "",
+          "Outlook: we expect growth to continue, although inflation and currency risk remain challenges.",
+          "Q&A"]
+
+
+def test_deck_groups_consecutive_slides_and_skips_empty_ones(tmp_path):
+    path = tmp_path / "deck.pdf"
+    make_pdf(path, [s * 3 for s in SLIDES])                               # slide 4 stays empty
+    chunks = select_deck_chunks(path, max_chunks=5, target_chars=300)
+    assert chunks
+    assert [c.page for c in chunks] == sorted(c.page for c in chunks)     # slide order
+    assert all(len(c.text) >= 200 for c in chunks)
+    assert any("Outlook" in c.text for c in chunks) and any("Performance" in c.text for c in chunks)
+    assert all(c.page != 4 for c in chunks)                               # a group never starts on the empty slide
+
+
+def test_deck_keeps_only_the_best_scoring_groups(tmp_path):
+    path = tmp_path / "deck.pdf"
+    make_pdf(path, [s * 3 for s in SLIDES])
+    assert len(select_deck_chunks(path, max_chunks=1, target_chars=300)) == 1
+
+
+def test_deck_items_carry_ticker_date_slide_and_stable_ids(tmp_path):
+    path = tmp_path / "deck.pdf"
+    make_pdf(path, [s * 4 for s in SLIDES])                                # longer slides so groups pass the minimum size
+    items = deck_items("alph", "900007", date(2026, 6, 2), "Presentation of Corporate Briefing Session", path, target_chars=300)
+    assert items and all(i.ticker == "ALPH" and i.date == date(2026, 6, 2) for i in items)
+    assert all(i.type == "presentation_section" and i.source == "psx_presentation" for i in items)
+    assert items[0].id.startswith("ALPH-DECK-900007-p") and "from slide" in items[0].text
+    assert len({i.id for i in items}) == len(items)
+
+
+def test_deck_without_text_gives_nothing(tmp_path):
+    path = tmp_path / "scan.pdf"
+    make_pdf(path, ["", "", ""])
+    assert deck_items("ALPH", "900008", date(2026, 6, 2), "Presentation", path) == []

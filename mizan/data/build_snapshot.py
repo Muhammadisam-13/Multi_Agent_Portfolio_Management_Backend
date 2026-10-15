@@ -3,7 +3,7 @@
 All sources run from the local cache (data/cache/) unless --live is given. With --live,
 missing data is fetched once and cached; cached prices are re-fetched only with --refresh-prices.
 --announcements adds PSX company announcements and their PDF text (decision D7) for --start..--end;
---reports also adds narrative chunks from long reports (annual/quarterly) found among them.
+--reports also adds narrative chunks from the long reports (annual/quarterly) and investor presentations found among them.
 
 Examples:
     python -m mizan.data.build_snapshot --name demo-v1 --tickers OGDC HUBC HBL --no-prices
@@ -59,10 +59,14 @@ def main(argv=None) -> int:
         from mizan.fetcher.announcements import AnnouncementsFetcher
         handler = None
         if args.reports:
-            from mizan.data.reports import chunk_items, is_periodic_report
-            handler = lambda row, path: (chunk_items(row.symbol, row.doc_id, row.day, row.title, path,
-                                                     max_chunks=args.report_chunks)
-                                         if is_periodic_report(row.title) else [])
+            from mizan.data.reports import chunk_items, deck_items, is_periodic_report, is_presentation
+
+            def handler(row, path):
+                if is_periodic_report(row.title):
+                    return chunk_items(row.symbol, row.doc_id, row.day, row.title, path, max_chunks=args.report_chunks)
+                if is_presentation(row.title):
+                    return deck_items(row.symbol, row.doc_id, row.day, row.title, path)
+                return []
         ann = AnnouncementsFetcher(config, args.start, args.end, long_document_handler=handler).fetch(tickers)
         items += ann.items
         meta["announcements_window"] = [args.start.isoformat(), args.end.isoformat()]

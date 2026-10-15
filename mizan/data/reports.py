@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pymupdf
 
+from mizan.data.pdf_extract import extract_pages
 from mizan.schemas import EvidenceItem
 
 SOURCE = "psx_report"
@@ -177,3 +178,50 @@ def chunk_items(ticker: str, doc_id: str, day: date, title: str, pdf_path: str |
         id=f"{ticker}-REPORT-{doc_id}-p{c.page:03d}-{c.index}", ticker=ticker, source=SOURCE, type=TYPE, date=day,
         text=f"{ticker} report '{label}' (announced {day.isoformat()}), page {c.page} of {pages}: {c.text}")
         for c in chunks]
+
+
+# --- investor presentations (slide decks) -------------------------------------------
+
+PRESENTATION = re.compile(r"presentation|briefing", re.IGNORECASE)
+DECK_MIN_CHARS = 200              # slides are short; a group of slides below this says nothing
+DECK_MAX_DIGIT_FRACTION = 0.40    # slides carry more figures than prose does
+
+
+def is_presentation(title: str) -> bool:
+    """True for announcements that attach investor slides or a corporate briefing."""
+    return bool(PRESENTATION.search(title))
+
+
+def select_deck_chunks(pdf_path: str | Path, max_chunks: int = 6, target_chars: int = 1500) -> list[Chunk]:
+    """Group consecutive slides into chunks of about target_chars, keep the best-scoring ones in slide order.
+
+    A deck has no financial statements to cut off, so the whole document is used. Chunk.page is the first slide.
+    """
+    groups: list[tuple[int, str]] = []
+    buf: list[str] = []
+    first = 0
+    for number, text in enumerate(extract_pages(pdf_path), start=1):
+        if not text:
+            continue
+        first = first or number
+        buf.append(text)
+        if sum(len(t) for t in buf) >= target_chars:
+            groups.append((first, " ".join(buf)))
+            buf, first = [], 0
+    if buf:
+        groups.append((first, " ".join(buf)))
+
+    candidates = [Chunk(page, k, text, _score(text)) for k, (page, text) in enumerate(groups)
+                  if len(text) >= DECK_MIN_CHARS and _digit_fraction(text) <= DECK_MAX_DIGIT_FRACTION]
+    ranked = [c for c in sorted(candidates, key=lambda c: (-c.score, c.page)) if c.score > 0] or candidates
+    return sorted(ranked[:max_chunks], key=lambda c: c.page)
+
+
+def deck_items(ticker: str, doc_id: str, day: date, title: str, pdf_path: str | Path,
+               max_chunks: int = 6, target_chars: int = 1500) -> list[EvidenceItem]:
+    """Narrative passages of one investor presentation as EvidenceItems dated with the announcement date."""
+    ticker, label = ticker.upper(), title.strip().rstrip(".")
+    return [EvidenceItem(
+        id=f"{ticker}-DECK-{doc_id}-p{c.page:03d}", ticker=ticker, source="psx_presentation", type="presentation_section",
+        date=day, text=f"{ticker} presentation '{label}' (announced {day.isoformat()}), from slide {c.page}: {c.text}")
+        for c in select_deck_chunks(pdf_path, max_chunks, target_chars)]
