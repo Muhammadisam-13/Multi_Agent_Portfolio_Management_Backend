@@ -43,7 +43,8 @@ def create_app(settings: Settings | None = None, llm: LLM | None = None) -> Fast
                        allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
     # no request is made until a /model/... endpoint is called
     app.state.llm = llm or OllamaClient(settings.ollama_url, settings.ollama_model, chat_timeout_s=settings.ollama_timeout_s,
-                                        num_ctx=settings.ollama_num_ctx, seed=settings.ollama_seed,
+                                        num_ctx=settings.ollama_num_ctx, num_predict=settings.ollama_num_predict,
+                                        seed=settings.ollama_seed,
                                         keep_alive=settings.ollama_keep_alive)
 
     # Both are loaded once at startup. A failure does not stop the server: /health reports it and the endpoints that

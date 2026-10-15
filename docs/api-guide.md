@@ -13,7 +13,7 @@ venv\Scripts\python.exe -m uvicorn api.main:app --host 0.0.0.0 --port 8000
   and, for prices, the local price cache in `data\cache\prices\`.
 - Optional environment variables: `MIZAN_SNAPSHOT` (default `demo-v3`), `MIZAN_OLLAMA_URL` (default `http://localhost:11434`),
   `MIZAN_OLLAMA_MODEL` (default `qwen3:8b`, tag not yet verified on the GPU box), and for the chat call `MIZAN_OLLAMA_NUM_CTX`
-  (default 4096), `MIZAN_OLLAMA_TIMEOUT_S` (default 120), `MIZAN_OLLAMA_SEED` (default 42) and `MIZAN_OLLAMA_KEEP_ALIVE` (default
+  (default 4096), `MIZAN_OLLAMA_NUM_PREDICT` (default 1024: the most tokens the model may generate per call), `MIZAN_OLLAMA_TIMEOUT_S` (default 120), `MIZAN_OLLAMA_SEED` (default 42) and `MIZAN_OLLAMA_KEEP_ALIVE` (default
   `30m`: how long the model stays loaded after a call). For `POST /ask`: `MIZAN_ASK_BUDGET_TOKENS` (default 2500, estimated tokens of
   evidence shown to the model). For a Flutter web build elsewhere: `MIZAN_CORS_ORIGINS` (comma-separated origins).
 - The server never fetches from PSX while answering a request. Everything is served from the snapshot and local caches.

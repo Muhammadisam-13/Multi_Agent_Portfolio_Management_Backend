@@ -8,6 +8,7 @@
     MIZAN_OLLAMA_URL      Ollama base URL                                       default http://localhost:11434
     MIZAN_OLLAMA_MODEL    model name to look for                                default qwen3:8b (tag not verified)
     MIZAN_OLLAMA_NUM_CTX  context window sent with each chat call (tokens)      default 4096
+    MIZAN_OLLAMA_NUM_PREDICT  cap on tokens generated per chat call (num_predict) default 1024
     MIZAN_OLLAMA_TIMEOUT_S  seconds to wait for a chat reply (health uses 3 s)  default 120
     MIZAN_OLLAMA_SEED     sampling seed sent with each chat call                default 42
     MIZAN_OLLAMA_KEEP_ALIVE  how long Ollama keeps the model loaded after a call, as a duration such as 30m or 1h
@@ -38,6 +39,9 @@ class Settings:
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:8b"
     ollama_num_ctx: int = 4096
+    # 512 cut off real /ask answers from qwen3:4b-instruct on both attempts (2026-10-16), so the cap is 1024 and the ask prompt
+    # asks for a short answer. The prompt and the answer share num_ctx: see ask_budget_tokens below.
+    ollama_num_predict: int = 1024
     ollama_timeout_s: float = 120.0
     ollama_seed: int = 42
     ollama_keep_alive: str = "30m"
@@ -62,6 +66,7 @@ class Settings:
             ollama_url=env.get("MIZAN_OLLAMA_URL", d.ollama_url),
             ollama_model=env.get("MIZAN_OLLAMA_MODEL", d.ollama_model),
             ollama_num_ctx=_number(env, "MIZAN_OLLAMA_NUM_CTX", d.ollama_num_ctx, int, positive=True),
+            ollama_num_predict=_number(env, "MIZAN_OLLAMA_NUM_PREDICT", d.ollama_num_predict, int, positive=True),
             ollama_timeout_s=_number(env, "MIZAN_OLLAMA_TIMEOUT_S", d.ollama_timeout_s, float, positive=True),
             ollama_seed=_number(env, "MIZAN_OLLAMA_SEED", d.ollama_seed, int),
             ollama_keep_alive=env.get("MIZAN_OLLAMA_KEEP_ALIVE", "").strip() or d.ollama_keep_alive,

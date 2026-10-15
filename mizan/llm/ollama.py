@@ -38,7 +38,7 @@ RETRY_PROMPT = ("That reply could not be used: {problem}. Reply again with only 
 class OllamaClient:
     def __init__(self, base_url: str = "http://localhost:11434", model: str = "qwen3:8b",
                  session=None, timeout_s: float = 3.0, clock=time.monotonic, *,
-                 chat_timeout_s: float = 120.0, num_ctx: int = 4096, num_predict: int = 512, seed: int = 42,
+                 chat_timeout_s: float = 120.0, num_ctx: int = 4096, num_predict: int = 1024, seed: int = 42,
                  keep_alive: str = "10m"):
         self.base_url = base_url.rstrip("/")
         self.model = model

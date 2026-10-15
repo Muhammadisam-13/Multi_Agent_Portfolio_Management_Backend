@@ -170,7 +170,7 @@ def test_json_that_is_not_an_object_is_bad_output():
 
 def test_a_cut_off_reply_says_so():
     cut = reply('{"status": "ok", "no', done_reason="length")
-    with pytest.raises(BadOutput, match="cut off at the 512-token limit"):
+    with pytest.raises(BadOutput, match="cut off at the 1024-token limit"):
         client(Resp(body=cut), Resp(body=cut)).chat(MESSAGES, SCHEMA)
 
 

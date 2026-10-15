@@ -25,7 +25,7 @@ pytestmark = [
 
 def live_client(s: Settings) -> OllamaClient:
     return OllamaClient(s.ollama_url, s.ollama_model, chat_timeout_s=s.ollama_timeout_s, num_ctx=s.ollama_num_ctx,
-                        seed=s.ollama_seed, keep_alive=s.ollama_keep_alive)
+                        num_predict=s.ollama_num_predict, seed=s.ollama_seed, keep_alive=s.ollama_keep_alive)
 
 
 def test_real_model_returns_schema_valid_json():
