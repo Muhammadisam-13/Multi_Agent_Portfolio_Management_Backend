@@ -1,0 +1,65 @@
+{
+  "created_utc": "2026-10-15T08:32:41+00:00",
+  "item_count": 955,
+  "items_by_ticker": {
+    "FFC": 161,
+    "HBL": 155,
+    "HUBC": 152,
+    "LUCK": 154,
+    "OGDC": 162,
+    "SYS": 171
+  },
+  "items_by_type": {
+    "announcement": 131,
+    "financial_results": 23,
+    "price": 738,
+    "report_section": 63
+  },
+  "date_range": [
+    "2026-04-13",
+    "2026-10-12"
+  ],
+  "items_sha256": "e5aaf30d27f8dd04f77fd9d7d459ff06c387a03c6420a20d02f6999fc5a7042c",
+  "tickers": [
+    "OGDC",
+    "LUCK",
+    "HBL",
+    "FFC",
+    "HUBC",
+    "SYS"
+  ],
+  "results_fetcher_notes": [
+    "dropped repeated posting: Systems Limited, 2026-08-27 12:49:45 (identical to an earlier row)",
+    "results table page fetched 2026-10-13T08:19:42.942631+00:00, 1375 rows from 2026-04-13 to 2026-10-12"
+  ],
+  "announcements_window": [
+    "2026-04-13",
+    "2026-10-12"
+  ],
+  "announcements_notes": [
+    "OGDC: report 283468 (Transmission of Annual Report for the Year Ended J): 6 narrative chunks",
+    "OGDC: report 276351 (Transmission of Quarterly Report for the Period En): 6 narrative chunks",
+    "OGDC: 23 announcements (4 long, 1 needs_ocr, 1 no_document, 17 text)",
+    "LUCK: report 282262 (Transmission of Annual Report for the year ended -): 6 narrative chunks",
+    "LUCK: report 276255 (Transmission of Quarterly Report for the period en): 1 narrative chunks",
+    "LUCK: 20 announcements (5 long, 7 needs_ocr, 6 no_document, 2 text)",
+    "HBL: report 280977 (Transmission of Half Yearly Report for the Period): 6 narrative chunks",
+    "HBL: report 275409 (Transmission of Quarterly Report for the Period En): 6 narrative chunks",
+    "HBL: 16 announcements (5 long, 6 needs_ocr, 3 no_document, 2 text)",
+    "FFC: report 281738 (Transmission of Quarterly Report for the Period En): 4 narrative chunks",
+    "FFC: report 276333 (Transmission of Quarterly Report for the Period En): 4 narrative chunks",
+    "FFC: 27 announcements (8 long, 9 needs_ocr, 8 no_document, 2 text)",
+    "HUBC: report 283369 (Transmission of Annual Report for the Year Ended J): 6 narrative chunks",
+    "HUBC: report 275244 (Transmission of Quarterly Report for the Period En): 1 narrative chunks",
+    "HUBC: 18 announcements (6 long, 10 needs_ocr, 1 no_document, 1 text)",
+    "SYS: report 281936 (Transmission of Half Yearly Report for the Period): 6 narrative chunks",
+    "SYS: report 277949 (Transmission of Quarterly Report for the Period En): 5 narrative chunks",
+    "SYS: report 274532 (Transmission of Annual Report for the Year Ended D): 6 narrative chunks",
+    "SYS: 27 announcements (6 long, 1 needs_ocr, 3 no_document, 17 text)"
+  ],
+  "price_range": [
+    "2026-04-13",
+    "2026-10-12"
+  ],
+  "psxdata_version": "1.2.0"
+}

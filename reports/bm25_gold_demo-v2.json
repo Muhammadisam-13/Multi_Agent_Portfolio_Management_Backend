@@ -1,0 +1,320 @@
+{
+  "run_utc": "2026-10-15T08:35:23+00:00",
+  "retriever": "bm25 (rank_bm25.BM25Okapi, k1=1.5, b=0.75)",
+  "snapshot": "demo-v2",
+  "gold_set": "gold_demo-v2.json",
+  "as_of": "2026-10-12",
+  "k": 5,
+  "queries": 16,
+  "recall@5": 0.846875,
+  "mrr": 0.875,
+  "per_query": [
+    {
+      "id": "g01",
+      "ticker": "OGDC",
+      "query": "TFC interest payment received from Power Holding Limited",
+      "relevant": [
+        "OGDC-ANN-275125",
+        "OGDC-ANN-277817",
+        "OGDC-ANN-279055"
+      ],
+      "returned": [
+        "OGDC-ANN-279055",
+        "OGDC-ANN-277817",
+        "OGDC-ANN-275125",
+        "OGDC-ANN-283329",
+        "OGDC-ANN-282420"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g02",
+      "ticker": "OGDC",
+      "query": "notice of annual general meeting",
+      "relevant": [
+        "OGDC-ANN-283329"
+      ],
+      "returned": [
+        "OGDC-ANN-283329",
+        "OGDC-RESULT-2026-09-08-20260630YR-UNCONSOLIDATED-125126",
+        "OGDC-ANN-281200",
+        "OGDC-ANN-274501",
+        "OGDC-ANN-281729"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g03",
+      "ticker": "OGDC",
+      "query": "principal risks and uncertainties and mitigation measures",
+      "relevant": [
+        "OGDC-REPORT-283468-p096-0",
+        "OGDC-REPORT-283468-p096-1"
+      ],
+      "returned": [
+        "OGDC-REPORT-283468-p096-0",
+        "OGDC-REPORT-283468-p088-2"
+      ],
+      "recall@5": 0.5,
+      "rr": 1.0
+    },
+    {
+      "id": "g04",
+      "ticker": "SYS",
+      "query": "credit of final cash dividend for the year ended December 31, 2025",
+      "relevant": [
+        "SYS-ANN-277819"
+      ],
+      "returned": [
+        "SYS-ANN-277819",
+        "SYS-ANN-20260709-e4d67a5f",
+        "SYS-ANN-276977",
+        "SYS-ANN-274532",
+        "SYS-ANN-274418"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g05",
+      "ticker": "HBL",
+      "query": "credit of interim cash dividend",
+      "relevant": [
+        "HBL-ANN-20260507-4a4c1ade",
+        "HBL-ANN-276833",
+        "HBL-ANN-281512"
+      ],
+      "returned": [
+        "HBL-ANN-20260507-4a4c1ade",
+        "HBL-ANN-281512",
+        "HBL-ANN-276833",
+        "HBL-REPORT-275409-p051-0",
+        "HBL-REPORT-280977-p051-1"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g06",
+      "ticker": "FFC",
+      "query": "change of company secretary",
+      "relevant": [
+        "FFC-ANN-20260909-56fc7fd6",
+        "FFC-ANN-282442"
+      ],
+      "returned": [
+        "FFC-ANN-20260909-56fc7fd6",
+        "FFC-ANN-282442",
+        "FFC-ANN-276857",
+        "FFC-ANN-280864",
+        "FFC-REPORT-276333-p005-0"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g07",
+      "ticker": "LUCK",
+      "query": "certified true copy of the resolutions passed in the annual general meeting",
+      "relevant": [
+        "LUCK-ANN-283482"
+      ],
+      "returned": [
+        "LUCK-ANN-283482",
+        "LUCK-ANN-282229",
+        "LUCK-RESULT-2026-08-10-20260630YR-UNCONSOLIDATED-161514",
+        "LUCK-ANN-277423",
+        "LUCK-ANN-280619"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g08",
+      "ticker": "HUBC",
+      "query": "corporate briefing session for the year ended June 30, 2026",
+      "relevant": [
+        "HUBC-ANN-281797",
+        "HUBC-ANN-282110",
+        "HUBC-ANN-282196"
+      ],
+      "returned": [
+        "HUBC-ANN-282110",
+        "HUBC-ANN-281797",
+        "HUBC-ANN-282196",
+        "HUBC-ANN-281728",
+        "HUBC-ANN-283369"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g09",
+      "ticker": "OGDC",
+      "query": "new oil or gas discovery well started production",
+      "relevant": [
+        "OGDC-ANN-274217",
+        "OGDC-ANN-278098",
+        "OGDC-ANN-278969",
+        "OGDC-ANN-279127",
+        "OGDC-ANN-282420"
+      ],
+      "returned": [
+        "OGDC-ANN-278098",
+        "OGDC-ANN-278969",
+        "OGDC-ANN-274217",
+        "OGDC-REPORT-276351-p004-0",
+        "OGDC-ANN-279127"
+      ],
+      "recall@5": 0.8,
+      "rr": 1.0
+    },
+    {
+      "id": "g10",
+      "ticker": "OGDC",
+      "query": "reserves replacement ratio and discoveries added to reserves",
+      "relevant": [
+        "OGDC-REPORT-283468-p064-2"
+      ],
+      "returned": [
+        "OGDC-REPORT-283468-p064-2",
+        "OGDC-REPORT-283468-p059-3",
+        "OGDC-REPORT-283468-p096-1",
+        "OGDC-ANN-278098",
+        "OGDC-ANN-279127"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g11",
+      "ticker": "OGDC",
+      "query": "final dividend proposed for the year ended 30 June 2026",
+      "relevant": [
+        "OGDC-RESULT-2026-09-08-20260630YR-UNCONSOLIDATED-125126"
+      ],
+      "returned": [
+        "OGDC-ANN-283329",
+        "OGDC-RESULT-2026-09-08-20260630YR-UNCONSOLIDATED-125126",
+        "OGDC-ANN-282260",
+        "OGDC-ANN-283468",
+        "OGDC-RESULT-2026-09-08-20260630YR-CONSOLIDATED-125242"
+      ],
+      "recall@5": 1.0,
+      "rr": 0.5
+    },
+    {
+      "id": "g12",
+      "ticker": "SYS",
+      "query": "extension of time to hold the annual general meeting",
+      "relevant": [
+        "SYS-ANN-274102",
+        "SYS-ANN-276116"
+      ],
+      "returned": [
+        "SYS-ANN-276116",
+        "SYS-ANN-274102",
+        "SYS-ANN-274418",
+        "SYS-ANN-276977",
+        "SYS-ANN-278038"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g13",
+      "ticker": "SYS",
+      "query": "board meeting to consider the first quarter results",
+      "relevant": [
+        "SYS-ANN-277304",
+        "SYS-ANN-277743"
+      ],
+      "returned": [
+        "SYS-ANN-277304",
+        "SYS-RESULT-2026-05-29-20260331IQ-CONSOLIDATED-170241",
+        "SYS-RESULT-2026-05-29-20260331IQ-UNCONSOLIDATED-170148",
+        "SYS-ANN-281372",
+        "SYS-ANN-277743"
+      ],
+      "recall@5": 1.0,
+      "rr": 1.0
+    },
+    {
+      "id": "g14",
+      "ticker": "OGDC",
+      "query": "which wells began producing recently",
+      "relevant": [
+        "OGDC-ANN-274217",
+        "OGDC-ANN-278969",
+        "OGDC-ANN-279127",
+        "OGDC-ANN-282420"
+      ],
+      "returned": [
+        "OGDC-REPORT-276351-p006-0",
+        "OGDC-ANN-274217",
+        "OGDC-ANN-282420",
+        "OGDC-REPORT-283468-p096-0",
+        "OGDC-ANN-274920"
+      ],
+      "recall@5": 0.5,
+      "rr": 0.5
+    },
+    {
+      "id": "g15",
+      "ticker": "HBL",
+      "query": "money paid out to shareholders",
+      "relevant": [
+        "HBL-ANN-20260507-4a4c1ade",
+        "HBL-ANN-276833",
+        "HBL-ANN-281512"
+      ],
+      "returned": [
+        "HBL-ANN-275456",
+        "HBL-ANN-20260624-50382614",
+        "HBL-ANN-20260624-66a0250f",
+        "HBL-REPORT-275409-p044-0"
+      ],
+      "recall@5": 0.0,
+      "rr": 0.0
+    },
+    {
+      "id": "g16",
+      "ticker": "SYS",
+      "query": "did the company hold investor presentations",
+      "relevant": [
+        "SYS-ANN-277956",
+        "SYS-ANN-278038",
+        "SYS-ANN-278089",
+        "SYS-ANN-281926"
+      ],
+      "returned": [
+        "SYS-ANN-281926",
+        "SYS-ANN-278038",
+        "SYS-ANN-277956",
+        "SYS-ANN-277819",
+        "SYS-ANN-274102"
+      ],
+      "recall@5": 0.75,
+      "rr": 1.0
+    }
+  ],
+  "by_difficulty": {
+    "easy": {
+      "queries": 8,
+      "recall@5": 0.9375,
+      "mrr": 1.0
+    },
+    "hard": {
+      "queries": 3,
+      "recall@5": 0.4166666666666667,
+      "mrr": 0.5
+    },
+    "medium": {
+      "queries": 5,
+      "recall@5": 0.96,
+      "mrr": 0.9
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "_note": "Hand-labelled queries over snapshot demo-v2 (6 tickers, 2026-04-13 to 2026-10-12). Written by reading item titles and some texts, so easy queries share words with the titles and BM25 is flattered; the 'hard' ones deliberately use other words. Labels list every item that answers the question, not just one. Review and extend before quoting the numbers in the report.",
+  "as_of": "2026-10-12",
+  "queries": [
+    {"id": "g01", "difficulty": "easy", "ticker": "OGDC", "query": "TFC interest payment received from Power Holding Limited",
+     "relevant": ["OGDC-ANN-275125", "OGDC-ANN-277817", "OGDC-ANN-279055"]},
+    {"id": "g02", "difficulty": "easy", "ticker": "OGDC", "query": "notice of annual general meeting",
+     "relevant": ["OGDC-ANN-283329"]},
+    {"id": "g03", "difficulty": "easy", "ticker": "OGDC", "query": "principal risks and uncertainties and mitigation measures",
+     "relevant": ["OGDC-REPORT-283468-p096-0", "OGDC-REPORT-283468-p096-1"]},
+    {"id": "g04", "difficulty": "easy", "ticker": "SYS", "query": "credit of final cash dividend for the year ended December 31, 2025",
+     "relevant": ["SYS-ANN-277819"]},
+    {"id": "g05", "difficulty": "easy", "ticker": "HBL", "query": "credit of interim cash dividend",
+     "relevant": ["HBL-ANN-20260507-4a4c1ade", "HBL-ANN-276833", "HBL-ANN-281512"]},
+    {"id": "g06", "difficulty": "easy", "ticker": "FFC", "query": "change of company secretary",
+     "relevant": ["FFC-ANN-282442", "FFC-ANN-20260909-56fc7fd6"]},
+    {"id": "g07", "difficulty": "easy", "ticker": "LUCK", "query": "certified true copy of the resolutions passed in the annual general meeting",
+     "relevant": ["LUCK-ANN-283482"]},
+    {"id": "g08", "difficulty": "easy", "ticker": "HUBC", "query": "corporate briefing session for the year ended June 30, 2026",
+     "relevant": ["HUBC-ANN-281797", "HUBC-ANN-282110", "HUBC-ANN-282196"]},
+
+    {"id": "g09", "difficulty": "medium", "ticker": "OGDC", "query": "new oil or gas discovery well started production",
+     "relevant": ["OGDC-ANN-274217", "OGDC-ANN-278098", "OGDC-ANN-278969", "OGDC-ANN-279127", "OGDC-ANN-282420"]},
+    {"id": "g10", "difficulty": "medium", "ticker": "OGDC", "query": "reserves replacement ratio and discoveries added to reserves",
+     "relevant": ["OGDC-REPORT-283468-p064-2"]},
+    {"id": "g11", "difficulty": "medium", "ticker": "OGDC", "query": "final dividend proposed for the year ended 30 June 2026",
+     "relevant": ["OGDC-RESULT-2026-09-08-20260630YR-UNCONSOLIDATED-125126"]},
+    {"id": "g12", "difficulty": "medium", "ticker": "SYS", "query": "extension of time to hold the annual general meeting",
+     "relevant": ["SYS-ANN-274102", "SYS-ANN-276116"]},
+    {"id": "g13", "difficulty": "medium", "ticker": "SYS", "query": "board meeting to consider the first quarter results",
+     "relevant": ["SYS-ANN-277304", "SYS-ANN-277743"]},
+
+    {"id": "g14", "difficulty": "hard", "ticker": "OGDC", "query": "which wells began producing recently",
+     "relevant": ["OGDC-ANN-274217", "OGDC-ANN-278969", "OGDC-ANN-279127", "OGDC-ANN-282420"]},
+    {"id": "g15", "difficulty": "hard", "ticker": "HBL", "query": "money paid out to shareholders",
+     "relevant": ["HBL-ANN-20260507-4a4c1ade", "HBL-ANN-276833", "HBL-ANN-281512"]},
+    {"id": "g16", "difficulty": "hard", "ticker": "SYS", "query": "did the company hold investor presentations",
+     "relevant": ["SYS-ANN-277956", "SYS-ANN-278038", "SYS-ANN-278089", "SYS-ANN-281926"]}
+  ]
+}
