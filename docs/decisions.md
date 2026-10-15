@@ -157,4 +157,66 @@ confirm or correct those lines before the report.
 - **A wording correction:** the plan says the API returns "the existing Pydantic models". `mizan/schemas.py` defines frozen Python dataclasses,
   which FastAPI serializes directly; the contract (the six item fields, the three bundle fields) is unchanged.
 - **CORS:** not enabled; a Flutter desktop app is not subject to it. A Flutter web build would need it (api-plan.md).
+  **Changed 2026-10-16:** enabled for `http://localhost` and `http://127.0.0.1` on any port plus `MIZAN_CORS_ORIGINS`, GET and POST
+  only, for a Flutter web build served from localhost (at Shahzeb's request).
 - **Enforced by:** `api/`, `tests/test_api*.py` (TestClient, no network, no GPU), and the no-network test that fails if any endpoint opens a socket.
+
+## D12. Development model on the Mac, target model on the GPU box (2026-10-15)
+- **Decision:** development runs `qwen3:4b-instruct` (4.0B parameters, Q4_K_M) on a MacBook M1 with 8 GB RAM, served by Ollama over the
+  home network. The target stays `qwen3:8b` on the RTX 3080 box. The two differ only by `MIZAN_OLLAMA_URL` and `MIZAN_OLLAMA_MODEL`
+  (`api/config.py`); no code change is needed to switch.
+- **Reasoning:** the dev laptop has no GPU, and the 8B model (about 5.2 GB) does not fit comfortably in 8 GB of shared memory.
+- **Facts checked on 2026-10-15:**
+  - the 4B model was pulled with Ollama on the MacBook M1 (8 GB); `ollama ps` shows 100% GPU (Apple GPU), context 4096; it is served at
+    `http://192.168.100.95:11434` on the home network;
+  - from the Windows laptop, `GET /model/health` returned reachable true, model_available true, latency about 55 ms; `GET /health`
+    returned status ok, snapshot demo-v3, 976 items, verified true; 313 tests pass;
+  - Ollama's tags page lists plain `qwen3:4b` as a thinking build, so we use the `qwen3:4b-instruct` tag, and the planned chat call
+    will send `think: false`.
+- **Rule:** results from the 4B must be labelled with the model tag and never mixed with 8B results.
+- **Enforced by:** `api/config.py` settings only; nothing else in the code depends on the model name.
+- Agreement with Isam: [to confirm].
+
+## D13. POST /ask: a fixed evidence budget, and ungrounded answers are rejected (Shahzeb, 2026-10-16)
+- **Decision:**
+  - The model sees evidence chosen by `select_context` from the as-of bundle under a budget of **2500 estimated tokens**
+    (`MIZAN_ASK_BUDGET_TOKENS`). `ask()` receives a bundle built by `store.bundle(ticker, as_of)` and only narrows it, so no-look-ahead
+    and ticker isolation stay in the retrieval layer.
+  - **An answer that cites an evidence id the model was not shown is rejected.** So is one with no claims, or a claim with no id, unless
+    the model says the evidence is insufficient. The model gets one corrective retry naming the problem (until 2026-10-16 also the allowed ids, see the update below); a second
+    failure raises `UngroundedAnswer` and the API answers 502 naming the rejected ids. Nothing is silently dropped or repaired, apart
+    from trimming spaces and square brackets around an id.
+- **Reasoning for 2500 (Claude Code, from the request):** the context is 4096 tokens (Shahzeb's measurement on the Mac, 2026-10-16, and
+  the `MIZAN_OLLAMA_NUM_CTX` default). The answer may use up to 512 (`num_predict`; 1024 since the update below), leaving 3584 for the prompt; 2500 goes to evidence
+  and about 1,000 to the instructions, the item headers, the question (up to 500 characters) and the chat template. `select_context`
+  counts 3 characters per token, which is pessimistic for English text.
+- **Measured offline (2026-10-16, no model call):** for OGDC as of 2026-09-08 and the question "What did OGDC announce about its annual
+  results?", the selector shows 17 of 129 items (2469 estimated tokens; 92 price rows, 15 announcements and 5 report sections left out)
+  and the whole prompt is 8,823 characters: about 2,200 tokens at 4 characters per token, about 2,940 at 3. The real token count is
+  [to confirm on the real model] (`prompt_tokens` in the response).
+- **Update 2026-10-16 (Shahzeb's first real run, `qwen3:4b-instruct` on Ollama, context 4096):** `POST /ask` failed with "the reply was
+  cut off at the 512-token limit" on both attempts. Changes: the output cap is a setting, `MIZAN_OLLAMA_NUM_PREDICT`, default **1024**;
+  the prompt asks for at most 2 sentences and at most 3 claims of one short sentence each, citing ids exactly as shown; and **neither
+  retry resends the bad reply any more**. The JSON retry in `OllamaClient` sends the original messages plus one note naming the problem
+  (for a cut-off reply, also "keep it within 1024 tokens"); the grounding retry in `ask()` sends the original messages plus one note
+  naming the problem, without the allowed-id list (the ids are already shown in square brackets in the evidence). The end of the
+  unusable reply (last 200 characters) goes to the server log, never to the API error.
+- **Context arithmetic (Claude Code, measured offline 2026-10-16 on demo-v3, OGDC as of 2026-09-08, question "What did OGDC announce about
+  its annual results?"):** prompt 8,959 characters (instructions 830, evidence 8,071 for 17 items, question 58). At the pessimistic 3
+  characters per token, plus about 10 tokens of chat template per message (assumed, not measured): first call about 3,020 tokens + a
+  1024-token cap = about 4,040, under 4096. **The old retry did not fit:** it added the first reply (up to 1024) and a note listing all
+  17 ids (748 characters, about 250 tokens): about 5,330. The new retry note is 277 characters (about 90 tokens) plus any rejected ids:
+  about 4,140 with a full 1024-token reply, so **still about 50 tokens over at 3 characters per token** (about 200 over with a 500-character
+  question); at 4 characters per token it is about 3,400 and fits. It only overflows if the reply really uses the whole cap, which the
+  short-answer prompt is meant to prevent. Real token counts are [to confirm] (`prompt_tokens` in the /ask response). If it is a
+  problem: `MIZAN_ASK_BUDGET_TOKENS=2300` gives room even at 3 characters per token, or raise `MIZAN_OLLAMA_NUM_CTX`. What Ollama does
+  when prompt plus reply exceed `num_ctx` has not been checked [to confirm].
+- **Why reject rather than filter (Claude Code, from the request):** a cited id outside the evidence shown is either invented or comes
+  from outside knowledge; removing it would hide that and keep a claim with no support. The faithfulness component needs every claim to
+  point at evidence that was really given.
+- **What it does not check:** whether a claim's wording is supported by the item it cites, and whether numbers in the answer appear in
+  the evidence. The prompt asks for both; the code does not verify them (that belongs to the faithfulness layer, out of scope for the mid).
+- **Enforced by:** `mizan/llm/ask.py` (`grounding_problems`, `UngroundedAnswer`), `api/main.py` (`POST /ask`), `tests/test_ask.py` and
+  `tests/test_api_ask.py` (marker items dated after `as_of` or of another ticker never appear in any message sent to the fake model,
+  and citing them is rejected).
+- Tested with `FakeLLM` only; not yet run on the real model. Agreement with Isam: [to confirm].

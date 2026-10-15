@@ -7,6 +7,16 @@
     MIZAN_LIVE_FETCH      1/true to ENABLE live fetching in config              default off
     MIZAN_OLLAMA_URL      Ollama base URL                                       default http://localhost:11434
     MIZAN_OLLAMA_MODEL    model name to look for                                default qwen3:8b (tag not verified)
+    MIZAN_OLLAMA_NUM_CTX  context window sent with each chat call (tokens)      default 4096
+    MIZAN_OLLAMA_NUM_PREDICT  cap on tokens generated per chat call (num_predict) default 1024
+    MIZAN_OLLAMA_TIMEOUT_S  seconds to wait for a chat reply (health uses 3 s)  default 120
+    MIZAN_OLLAMA_SEED     sampling seed sent with each chat call                default 42
+    MIZAN_OLLAMA_KEEP_ALIVE  how long Ollama keeps the model loaded after a call, as a duration such as 30m or 1h
+                                                                                default 30m
+    MIZAN_ASK_BUDGET_TOKENS  evidence budget for POST /ask, in estimated tokens  default 2500 (reason in Settings below)
+    MIZAN_CORS_ORIGINS    extra browser origins allowed to call the API, comma-separated, e.g.
+                          http://192.168.100.20:8080 (http://localhost and http://127.0.0.1 on any port are always allowed)
+                                                                                default none
 
 MIZAN_LIVE_FETCH is only reported by /health. No endpoint fetches from PSX during a request: every loader the API builds is
 constructed with live fetching off, whatever this flag says (decision D11).
@@ -28,6 +38,22 @@ class Settings:
     live_fetching_enabled: bool = False
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:8b"
+    ollama_num_ctx: int = 4096
+    # 512 cut off real /ask answers from qwen3:4b-instruct on both attempts (2026-10-16), so the cap is 1024 and the ask prompt
+    # asks for a short answer. The prompt and the answer share num_ctx: see ask_budget_tokens below.
+    ollama_num_predict: int = 1024
+    ollama_timeout_s: float = 120.0
+    ollama_seed: int = 42
+    ollama_keep_alive: str = "30m"
+    # Evidence budget for POST /ask. With num_ctx 4096 the prompt must also hold the instructions, the question (up to 500
+    # characters) and leave room for the answer (num_predict 1024): 4096 - 1024 = 3072 tokens for the prompt, of which 2500 go to
+    # evidence and about 570 stay for the rest. A retry adds only a short note (the bad reply is not resent). select_context
+    # counts pessimistically (3 characters per token); at that rate the real OGDC prompt plus a full 1024-token reply is right at
+    # 4096 (decision D13), at 4 characters per token it fits with room to spare. This is an estimate, not a tokenizer count:
+    # digit-heavy text such as price rows can tokenize worse. Check prompt_tokens in the /ask response on the real model. If it
+    # is too close, lower this or raise MIZAN_OLLAMA_NUM_CTX.
+    ask_budget_tokens: int = 2500
+    cors_origins: tuple[str, ...] = ()
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -41,4 +67,25 @@ class Settings:
             live_fetching_enabled=env.get("MIZAN_LIVE_FETCH", "").strip().lower() in {"1", "true", "yes", "on"},
             ollama_url=env.get("MIZAN_OLLAMA_URL", d.ollama_url),
             ollama_model=env.get("MIZAN_OLLAMA_MODEL", d.ollama_model),
+            ollama_num_ctx=_number(env, "MIZAN_OLLAMA_NUM_CTX", d.ollama_num_ctx, int, positive=True),
+            ollama_num_predict=_number(env, "MIZAN_OLLAMA_NUM_PREDICT", d.ollama_num_predict, int, positive=True),
+            ollama_timeout_s=_number(env, "MIZAN_OLLAMA_TIMEOUT_S", d.ollama_timeout_s, float, positive=True),
+            ollama_seed=_number(env, "MIZAN_OLLAMA_SEED", d.ollama_seed, int),
+            ollama_keep_alive=env.get("MIZAN_OLLAMA_KEEP_ALIVE", "").strip() or d.ollama_keep_alive,
+            ask_budget_tokens=_number(env, "MIZAN_ASK_BUDGET_TOKENS", d.ask_budget_tokens, int, positive=True),
+            cors_origins=tuple(o.strip().rstrip("/") for o in env.get("MIZAN_CORS_ORIGINS", "").split(",") if o.strip()),
         )
+
+
+def _number(env, name: str, default, kind, positive: bool = False):
+    """A numeric setting; a bad value stops startup with a message naming the variable."""
+    raw = env.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = kind(raw)
+    except ValueError:
+        raise ValueError(f"{name} must be a {'whole ' if kind is int else ''}number, got {raw!r}") from None
+    if positive and value <= 0:
+        raise ValueError(f"{name} must be greater than 0, got {raw!r}")
+    return value

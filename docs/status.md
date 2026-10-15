@@ -10,9 +10,24 @@ Nothing here is marked done unless it exists in the repo and is tested. Scope: `
   Checked once over HTTP with a real uvicorn server against the real snapshot and caches. Guide for the Flutter side: `docs/api-guide.md`.
   - `GET /health`, `/tickers`, `/tickers/{ticker}/bundle`, `/evidence/{id}`, `/tickers/{ticker}/prices`, `/model/health`.
   - No request fetches from PSX (a test fails if any endpoint talks to a non-local host).
-  - **Not built:** endpoint 7 `POST /model/test` (optional in the plan).
-  - **Not verified:** the Ollama client has only been run against a fake server and against nothing listening (a clean 503). It has not
-    seen a real Ollama here, so the first run on the GPU box is the real test; the default model tag `qwen3:8b` is unverified.
+  - **Built 2026-10-16:** the chat call with JSON-schema output (`OllamaClient.chat`, one retry on bad output) and endpoint 7
+    `POST /model/test`. Tested with fakes only (fake HTTP session, `FakeLLM`); **not yet run against the real model**. An opt-in live
+    test exists (`tests/test_llm_live.py`, `MIZAN_LIVE_OLLAMA=1`).
+  - **Built 2026-10-16:** `ask()` (`mizan/llm/ask.py`) and endpoint 8 `POST /ask`: an answer over the as-of evidence, cut to a
+    2500-token budget, with every cited id checked against the evidence shown (one corrective retry, then 502; D13). CORS for a Flutter
+    web build on localhost. Tested with `FakeLLM` (439 tests passed, 2 opt-in live tests skipped). Contract agreement with Isam and the
+    Flutter side: [to confirm].
+  - **First real run, 2026-10-16 (Shahzeb, `qwen3:4b-instruct` on Ollama, context 4096): `POST /ask` failed** with "the reply was cut
+    off at the 512-token limit" on both attempts. Fix on the same day (D13 update): output cap is now a setting,
+    `MIZAN_OLLAMA_NUM_PREDICT` (default 1024); the prompt asks for at most 2 sentences and 3 one-sentence claims; retries no longer
+    resend the bad reply (it did not fit the 4096 context); the end of an unusable reply goes to the server log. Tested with fakes
+    (`FakeLLM`, and the real `OllamaClient` over a fake HTTP session for cut-off replies): 448 tests pass, 2 opt-in live tests
+    skipped. **Not yet re-run against the real model**, so it is not known yet whether the answers now fit; at the pessimistic 3
+    characters per token a retry with a full-length reply is still about 50 tokens over 4096 (arithmetic in D13).
+  - **Update 2026-10-15:** the Ollama client has now been checked once against a real Ollama (health check only, over the LAN, from
+    Windows; D12): `/model/health` returned reachable true, model_available true, about 55 ms, with `qwen3:4b-instruct` on a MacBook M1.
+    The chat call and `/ask` (2026-10-16) have not been run against it yet. The default model tag `qwen3:8b` (the target on
+    the GPU box) is still unverified.
   - **Not done by me:** the Flutter side (teammate), the model deployment itself (Isam), who owns the API (marked [confirm] in the plan).
   - The sections below describe the retrieval layer and were written before this change; the demo-item table still lists the terminal demo,
     which remains a fallback. The UI demo flow is in `docs/api-plan.md`.
@@ -26,7 +41,8 @@ Nothing here is marked done unless it exists in the repo and is tested. Scope: `
   committed manifest. Its contents and the caches exist only on this laptop (untracked by design, D4); a fresh clone cannot run the
   demo without a copy of `data/` or live fetches with `--live`. Older snapshots `demo-v1` and `demo-v2` have manifests too.
 - The announcements fetcher ran live once for six tickers: 6 list requests and 109 document downloads at 4 s intervals, no refusal.
-- No LLM or Ollama code is in the repo; Ollama is not installed on this laptop.
+- Update 2026-10-15: `mizan/llm` exists (health check; a chat call was added on 2026-10-16, tested with fakes only). Ollama is not
+  installed on this laptop; the development model runs on a MacBook over the LAN (D12).
 
 ## What is retrieved (see `docs/retrieval-plan.md` for the table)
 Daily prices (738), PSX financial-results rows (23), company announcements with their PDF text (131), narrative passages from
@@ -40,7 +56,7 @@ Each is a dated `EvidenceItem` with a stable ID.
 | 2 | Hard rules live: future item excluded, other tickers never appear | **Done**: the same command prints what rule 1 and rule 2 left out; `--compare-as-of 2026-09-01` shows the annual result appearing between two dates | the real snapshot has **no MACRO items** (SBP not built), so MACRO inclusion is shown on fixtures only |
 | 3 | Failure cases shown honestly | **Implemented and tested with fakes**: refused fetch falls back to the cached page with a warning, a second refusal stops with a message naming the D7 limits; live off + empty cache gives a clear `CacheMiss`; changed page gives `StructureChangedError`; scanned PDF flagged "needs OCR" (45 real examples in the data); unknown ticker gives an explained empty bundle; a tampered snapshot is refused | a real PSX refusal cannot be forced on demand; show it with the tests (`pytest tests/test_dps_session.py -v`) |
 | 4 | BM25 search with recall@k / MRR | **Done on real data**, two gold sets, plain and normalized BM25 (table below) | say that the sets are small, the first set's labels were written after reading titles, and BM25 is weak on paraphrases |
-| 5 | Local model: Ollama + Qwen3-8B (Q4_K_M), one schema-valid JSON call, VRAM and latency noted | **Not in this repo and not verified here.** Isam to fill in from the GPU box | `LLM` interface and a fake model for tests; the Ollama checklist in the plan |
+| 5 | Local model: Ollama + Qwen3-8B (Q4_K_M), one schema-valid JSON call, VRAM and latency noted | **The call is in the repo (`POST /model/test`, 2026-10-16) but tested with fakes only; not yet run against a real model.** Isam to fill in from the GPU box | a real run (Mac 4B first, then the 8B on the GPU box, labelled by model tag, D12); VRAM and latency figures; the Ollama checklist in the plan |
 | 6 | `pytest` run live | **Ready** (247 pass) | save the log |
 | 7 | Status section | **This file** | Isam to review |
 
