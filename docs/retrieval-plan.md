@@ -46,7 +46,7 @@ seen on that set, so its gain is not fully independent evidence.
 - Two of the 13 periodic reports are image-only (HUBC's and LUCK's March-quarter reports): one flagged item each. LUCK and OGDC have no
   presentation passages.
 - Report and slide passages come from keyword heuristics (no model); they keep useful narrative but also some boilerplate.
-- No macro data (SBP) yet, so the real snapshot has no MACRO items. No news layer (D8). ENGRO prices stop at 2025-01-03 (excluded).
+- No macro data (SBP) yet, so the real snapshot has no MACRO items. No news layer (D8). ENGRO was dropped (D5 update): its prices stop at 2025-01-03.
 - Search does not bridge real vocabulary differences (see step 8).
 
 ### The commands (all run from the local snapshot or cache; live fetching needs `--live`)
@@ -64,7 +64,7 @@ behind each are in `docs/mid-and-next-plan.md`. Retrieval covers items 1-4 and 6
 1. SBP macro items (needs an API key; decide whether the debate needs it).
 2. ~~OCR for the image-only PDFs~~ dropped by decision (D9); scanned notices stay title-only.
 3. Embeddings, to be compared with `bm25-norm` on both gold sets (GPU box); a larger and harder gold set.
-4. ENGRO: choose a current symbol or a replacement ticker. Price granularity (daily rows vs weekly summaries).
+4. Price granularity (daily rows vs weekly summaries).
 5. Optional news via Tavily or similar (D8).
 6. Evidence bundle -> agent turn with evidence-ID citations (thin end-to-end slice); settle the faithfulness method.
 

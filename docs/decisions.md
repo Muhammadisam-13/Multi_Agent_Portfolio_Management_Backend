@@ -47,7 +47,8 @@ confirm or correct those lines before the report.
 - **Enforced by:** `.gitignore` (`data/snapshots/*/*` with `!data/snapshots/*/manifest.json`), CLAUDE.md rule 4.
 
 ## D5. Demo tickers (Isam, 2026-10-13)
-- **Decision:** OGDC, LUCK, HBL, FFC, HUBC, SYS, ENGRO.
+- **Decision:** OGDC, LUCK, HBL, FFC, HUBC, SYS, ENGRO. **Update 2026-10-15: ENGRO is dropped** (Isam). Its prices stop at 2025-01-03 and no
+  current symbol was verified, so the demo uses six tickers: OGDC, LUCK, HBL, FFC, HUBC, SYS.
 - **Status:** see `sources-and-compliance.md` ("Demo tickers in the results table") for which have usable filings and the open
   ENGRO question.
 

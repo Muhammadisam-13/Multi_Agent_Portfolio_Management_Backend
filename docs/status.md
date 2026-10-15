@@ -70,5 +70,5 @@ tokens at 4 characters per token, 11k-31k at 3; estimates, not a real tokenizer)
 - OCR: decided not to do it (D9).
 
 **Blocked / unresolved**
-- Nothing is blocked by an outside party. ENGRO has no usable symbol (its prices stop at 2025-01-03) and is excluded.
+- Nothing is blocked by an outside party. ENGRO was dropped on 2026-10-15 (D5 update): its prices stop at 2025-01-03.
 - The AI-usage log's "reviewed / changed" column is still blank for every entry.
