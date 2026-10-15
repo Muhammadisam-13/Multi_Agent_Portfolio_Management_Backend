@@ -52,7 +52,9 @@ confirm or correct those lines before the report.
 - **Status:** see `sources-and-compliance.md` ("Demo tickers in the results table") for which have usable filings and the open
   ENGRO question.
 
-## D6. Mid scope: retrieval layer and local model deployment (Isam, 2026-10-15, agreed with the supervisor)
+## D6. Mid scope: retrieval layer and local model deployment (Isam, 2026-10-15, agreed with the supervisor) - PARTLY SUPERSEDED by D10
+- **Status:** D10 (evening of the same day) adds the FastAPI backend and the Flutter connection to the mid and defers SBP. The rest of D6
+  (who does what, the retrieval and model-deployment scope) still stands.
 - **Decision:** the FYP-1 mid (2026-10-16) shows two things: the **retrieval layer** and **local model deployment**. Nothing else is
   required for the mid.
 - **Who does what (from the plan):** Isam: retrieval (to completion) and local model deployment. One teammate: the mid report. One
@@ -129,3 +131,30 @@ confirm or correct those lines before the report.
   blocked a DLL; not worked around).
 - **Consequence:** many material-information, board-meeting and dividend notices carry only their title. State this as a limitation in the
   report. The OCR flag stays in the code, so OCR can be added later without changing the data format.
+
+## D10. The UI must be connected for the mid: FastAPI backend required; SBP deferred (team, 2026-10-15, evening)
+- **Decision:** the Flutter UI has to be connected to the backend for the mid, so a FastAPI backend (`api/`) is now **required** for the mid.
+  PSX retrieval is reported done. SBP/macro data is deferred until after the mid. The model deployment stays in scope and is made visible
+  through the API (`/model/health`).
+- **Reasoning (from `docs/api-plan.md`):** without the UI connection marks are lost. The plan's demo flow therefore runs through the UI
+  (status from `/health`, pick a ticker and date, evidence list, move the date earlier, error cases, model status).
+- **Supersedes:** the parts of D6 that put the frontend-to-backend connection after the mid and listed no API among the mid deliverables.
+- **Consequences:** the terminal demo (`scripts/demo.ps1`, `docs/demo-script.md`) stays as a fallback. The real snapshot still has no MACRO
+  items, which is now an announced deferral and not just a gap.
+- **Still open (marked [confirm] in the plan):** who owns the API, and the Flutter teammate's name.
+
+## D11. API design rules (team, 2026-10-15, from docs/api-plan.md)
+- **Decision:**
+  - `api/` contains no business logic: it calls functions in `mizan/` and returns the existing response types.
+  - It serves from the snapshot and caches by default. **A request never triggers live PSX fetching** unless that is explicitly enabled in
+    config; none of the endpoints built so far has such a path.
+  - Errors use proper status codes and a readable message the UI can show (404 unknown ticker or id, 422 bad input, 503 data or model
+    unavailable).
+  - The hard rules hold through the API: no look-ahead (`as_of`) and ticker isolation.
+  - FastAPI's generated `/docs` and `/openapi.json` are the shared contract with the Flutter side.
+- **Endpoints (api-plan.md):** 1 `GET /health`, 2 `GET /tickers`, 3 `GET /tickers/{ticker}/bundle?as_of=`, 4 `GET /evidence/{id}`,
+  5 `GET /tickers/{ticker}/prices`, 6 `GET /model/health`, 7 `POST /model/test` (optional). Build order is the numbering; 1-3 are the minimum.
+- **A wording correction:** the plan says the API returns "the existing Pydantic models". `mizan/schemas.py` defines frozen Python dataclasses,
+  which FastAPI serializes directly; the contract (the six item fields, the three bundle fields) is unchanged.
+- **CORS:** not enabled; a Flutter desktop app is not subject to it. A Flutter web build would need it (api-plan.md).
+- **Enforced by:** `api/`, `tests/test_api*.py` (TestClient, no network, no GPU), and the no-network test that fails if any endpoint opens a socket.

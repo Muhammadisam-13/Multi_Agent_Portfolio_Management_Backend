@@ -3,6 +3,15 @@
 Written by Claude Code from the repository and test runs on 2026-10-15; Isam to correct anything that is out of date.
 Nothing here is marked done unless it exists in the repo and is tested. Scope: `docs/mid-and-next-plan.md` (decision D6).
 
+## Scope change (evening of 2026-10-15; decisions D10 and D11)
+- The Flutter UI must be connected to the backend for the mid, so a **FastAPI backend (`api/`) is now required**. SBP/macro is **deferred until
+  after the mid**. PSX retrieval is reported done. Plan: `docs/api-plan.md`.
+- **API status: being built tonight** (endpoints 1-3 first, then 4-6; endpoint 7 `POST /model/test` is optional). The sections below describe
+  the state before this change and will be updated as endpoints land; until then nothing in this file claims an API.
+- Still to confirm: who owns the API; the Flutter teammate's name (both marked [confirm] in the plan).
+- Note on the working copy: uncommitted edits to `docs/context.md`, `docs/mid-and-next-plan.md` and `docs/retrieval-plan.md` (the new plan wording)
+  are untouched; `docs/retrieval-plan.md` in the working copy no longer holds the status tables committed earlier (they are in git history).
+
 ## Verified today
 - Work is on branch `retrieval/fetcher-and-search`. 247 tests pass on the laptop (CPU only, about 3 s). `main` holds an earlier merge.
 - Local snapshot `demo-v3` (976 items, 6 tickers, 2026-04-13 to 2026-10-12) was built offline from the local caches and verifies against its
