@@ -97,10 +97,20 @@ def test_an_unknown_cited_id_gets_one_corrective_retry_then_succeeds(bundle):
     result = ask(QUESTION, bundle, fake, 2500)
     assert result.attempts == 2 and result.cited_ids == ("AAA-RES-2026-08-20",) and len(fake.chat_calls) == 2
     retry, schema = fake.chat_calls[1]
-    assert schema is ANSWER_SCHEMA and retry[:3] == fake.chat_calls[0][0]
-    assert retry[3] == {"role": "assistant", "content": bad}
-    assert retry[4]["role"] == "user" and "AAA-MADE-UP-1" in retry[4]["content"] and "were not listed" in retry[4]["content"]
-    assert "AAA-RES-2026-08-20" in retry[4]["content"]                               # the allowed ids are named
+    assert schema is ANSWER_SCHEMA and retry[:3] == fake.chat_calls[0][0] and len(retry) == 4
+    assert retry[3]["role"] == "user" and "AAA-MADE-UP-1" in retry[3]["content"] and "were not listed" in retry[3]["content"]
+    assert "square brackets" in retry[3]["content"]
+    # Neither the rejected answer nor a list of allowed ids is resent, so the retry fits the context like the first prompt.
+    assert "Profit rose." not in retry[3]["content"] and "AAA-RES-2026-08-20" not in retry[3]["content"]
+
+
+def test_a_rejected_answer_logs_its_tail_but_the_error_does_not_carry_it(bundle, caplog):
+    first = reply(claims=(("Profit rose. LOG-MARKER", ["AAA-MADE-UP-1"]),))
+    with caplog.at_level("WARNING", logger="mizan.llm.ask"), pytest.raises(UngroundedAnswer) as exc:
+        ask(QUESTION, bundle, FakeLLM(replies=[first, first]), 2500)
+    logged = [r.getMessage() for r in caplog.records]
+    assert len(logged) == 2 and all("LOG-MARKER" in m and "AAA-MADE-UP-1" in m for m in logged)
+    assert "LOG-MARKER" not in str(exc.value)
 
 
 def test_two_ungrounded_answers_raise_with_the_rejected_ids(bundle):

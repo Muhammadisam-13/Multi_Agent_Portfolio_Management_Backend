@@ -8,6 +8,7 @@ retry, then UngroundedAnswer.
 Plain Python, no web code. The prompt text lives in the constants below so it can be read and changed in one place.
 """
 
+import logging
 import time
 from dataclasses import dataclass
 
@@ -15,6 +16,8 @@ from mizan.llm.base import LLM, BadOutput
 from mizan.llm.schema_check import schema_errors
 from mizan.retrieval.context import select_context
 from mizan.schemas import EvidenceBundle, EvidenceItem
+
+log = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
     "You answer questions about a company listed on the Pakistan Stock Exchange, using only the evidence listed in the next "
@@ -33,10 +36,14 @@ EVIDENCE_ITEM = "[{id}] {date} | {type} | {source}\n{text}"
 NO_EVIDENCE = "Evidence: none. There are no evidence items for this company on or before this date."
 QUESTION = "Question: {question}"
 
-# Sent after an answer that fails the grounding check, together with that answer. The chat options are deterministic, so
-# repeating the same request would most likely repeat the same answer; naming the problem changes the prompt.
-RETRY_PROMPT = ("That answer cannot be used: {problems}. Answer the question again using only the listed evidence. "
-                "The only ids you may cite are: {allowed}. If the evidence is not enough, set insufficient_evidence to true.")
+# Sent after an answer that fails the grounding check. The chat options are deterministic, so repeating the same request would
+# most likely repeat the same answer; naming the problem changes the prompt. Neither the rejected answer nor a list of the allowed
+# ids is sent (the ids are already shown in the evidence): with a 4096-token context, 2500 tokens of evidence and a 1024-token
+# output cap, the retry must stay about as long as the first prompt (decision D13, 2026-10-16).
+RETRY_PROMPT = ("Your previous answer could not be used: {problems}. Answer the question again, briefly, using only the listed "
+                "evidence, and cite only ids shown in square brackets there. If the evidence is not enough, set "
+                "insufficient_evidence to true.")
+LOG_TAIL_CHARS = 200            # how much of a rejected answer goes to the server log (never to the API error)
 
 # Only keywords that schema_check.py supports. "At least one claim unless insufficient_evidence" cannot be written with them,
 # so it is checked in code (grounding_problems).
@@ -154,14 +161,13 @@ def ask(question: str, bundle: EvidenceBundle, llm: LLM, budget_tokens: int, *, 
     problems, unknown = grounding_problems(result.parsed, allowed)
     attempts = 1
     if problems:
-        retry = [*messages, {"role": "assistant", "content": result.text},
-                 {"role": "user", "content": RETRY_PROMPT.format(problems="; ".join(problems),
-                                                                 allowed=", ".join(sorted(allowed)) or "none")}]
-        result = _chat(llm, retry)
+        _log_rejected(result, 1, problems)
+        result = _chat(llm, [*messages, {"role": "user", "content": RETRY_PROMPT.format(problems="; ".join(problems))}])
         problems, unknown = grounding_problems(result.parsed, allowed)
         attempts = 2
     model_ms = (clock() - started) * 1000
     if problems:
+        _log_rejected(result, 2, problems)
         raise UngroundedAnswer(f"Model '{result.model}' gave an answer that is not grounded in the evidence it was shown, "
                                f"after 2 attempts: {'; '.join(problems)}.", tuple(unknown), tuple(problems))
 
@@ -191,6 +197,11 @@ def _chat(llm: LLM, messages: list[dict]):
     if errors:
         raise BadOutput(f"Model '{result.model}' returned JSON that does not match the answer schema: {'; '.join(errors[:3])}.")
     return result
+
+
+def _log_rejected(result, attempt: int, problems: list[str]) -> None:
+    log.warning("Model '%s' answer %d of 2 is not grounded: %s. Last %d characters: %r", result.model, attempt,
+                "; ".join(problems), LOG_TAIL_CHARS, result.text[-LOG_TAIL_CHARS:])
 
 
 def _clean_ids(ids: list[str]) -> list[str]:
