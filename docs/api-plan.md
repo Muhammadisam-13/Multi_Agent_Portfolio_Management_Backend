@@ -25,7 +25,7 @@ exposed as an HTTP API built with FastAPI. SBP/macro data is deferred until afte
 | 4 | `GET /evidence/{id}` | one `EvidenceItem` | 404 unknown id |
 | 5 | `GET /tickers/{ticker}/prices?start=&end=` | cached daily OHLCV rows | 404 unknown ticker; 503 with message if prices not cached |
 | 6 | `GET /model/health` | whether the Ollama endpoint is reachable and which model is loaded | 503 if unreachable |
-| 7 | `POST /model/test` (optional) | one schema-valid structured response from the local model | 503 if unreachable; 502 if output fails schema after retries |
+| 7 | `POST /model/test` (optional; **built 2026-10-16**, tested with a fake model, not yet run against the real model) | one schema-valid structured response from the local model | 503 if unreachable or model not pulled; 502 if output fails schema after one retry |
 | 8 | `POST /ask` (**proposed, not built**) | answer with claims citing evidence ids, plus the evidence used | 404 unknown ticker; 422 bad input; 503 model not reachable; 502 model output invalid after retries |
 
 1-3 are the minimum for a connected demo. 6 shows the local model deployment through the same API.

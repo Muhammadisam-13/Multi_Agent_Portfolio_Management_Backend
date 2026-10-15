@@ -10,11 +10,14 @@ Nothing here is marked done unless it exists in the repo and is tested. Scope: `
   Checked once over HTTP with a real uvicorn server against the real snapshot and caches. Guide for the Flutter side: `docs/api-guide.md`.
   - `GET /health`, `/tickers`, `/tickers/{ticker}/bundle`, `/evidence/{id}`, `/tickers/{ticker}/prices`, `/model/health`.
   - No request fetches from PSX (a test fails if any endpoint talks to a non-local host).
-  - **Not built:** endpoint 7 `POST /model/test` (optional in the plan); the chat call with structured output, `ask()` and `POST /ask`
-    (proposed, see `docs/api-plan.md`) (added 2026-10-15).
+  - **Built 2026-10-16:** the chat call with JSON-schema output (`OllamaClient.chat`, one retry on bad output) and endpoint 7
+    `POST /model/test`. Tested with fakes only (fake HTTP session, `FakeLLM`); **not yet run against the real model**. An opt-in live
+    test exists (`tests/test_llm_live.py`, `MIZAN_LIVE_OLLAMA=1`).
+  - **Not built:** `ask()` and `POST /ask` (proposed, see `docs/api-plan.md`) (added 2026-10-15).
   - **Update 2026-10-15:** the Ollama client has now been checked once against a real Ollama (health check only, over the LAN, from
     Windows; D12): `/model/health` returned reachable true, model_available true, about 55 ms, with `qwen3:4b-instruct` on a MacBook M1.
-    There is still no chat or generation call and no `/ask`. The default model tag `qwen3:8b` (the target on the GPU box) is still unverified.
+    The chat call (2026-10-16) has not been run against it yet, and there is no `/ask`. The default model tag `qwen3:8b` (the target on
+    the GPU box) is still unverified.
   - **Not done by me:** the Flutter side (teammate), the model deployment itself (Isam), who owns the API (marked [confirm] in the plan).
   - The sections below describe the retrieval layer and were written before this change; the demo-item table still lists the terminal demo,
     which remains a fallback. The UI demo flow is in `docs/api-plan.md`.
@@ -28,8 +31,8 @@ Nothing here is marked done unless it exists in the repo and is tested. Scope: `
   committed manifest. Its contents and the caches exist only on this laptop (untracked by design, D4); a fresh clone cannot run the
   demo without a copy of `data/` or live fetches with `--live`. Older snapshots `demo-v1` and `demo-v2` have manifests too.
 - The announcements fetcher ran live once for six tickers: 6 list requests and 109 document downloads at 4 s intervals, no refusal.
-- Update 2026-10-15: `mizan/llm` exists (health check only, no chat or generation call). Ollama is not installed on this laptop; the
-  development model runs on a MacBook over the LAN (D12).
+- Update 2026-10-15: `mizan/llm` exists (health check; a chat call was added on 2026-10-16, tested with fakes only). Ollama is not
+  installed on this laptop; the development model runs on a MacBook over the LAN (D12).
 
 ## What is retrieved (see `docs/retrieval-plan.md` for the table)
 Daily prices (738), PSX financial-results rows (23), company announcements with their PDF text (131), narrative passages from
@@ -43,7 +46,7 @@ Each is a dated `EvidenceItem` with a stable ID.
 | 2 | Hard rules live: future item excluded, other tickers never appear | **Done**: the same command prints what rule 1 and rule 2 left out; `--compare-as-of 2026-09-01` shows the annual result appearing between two dates | the real snapshot has **no MACRO items** (SBP not built), so MACRO inclusion is shown on fixtures only |
 | 3 | Failure cases shown honestly | **Implemented and tested with fakes**: refused fetch falls back to the cached page with a warning, a second refusal stops with a message naming the D7 limits; live off + empty cache gives a clear `CacheMiss`; changed page gives `StructureChangedError`; scanned PDF flagged "needs OCR" (45 real examples in the data); unknown ticker gives an explained empty bundle; a tampered snapshot is refused | a real PSX refusal cannot be forced on demand; show it with the tests (`pytest tests/test_dps_session.py -v`) |
 | 4 | BM25 search with recall@k / MRR | **Done on real data**, two gold sets, plain and normalized BM25 (table below) | say that the sets are small, the first set's labels were written after reading titles, and BM25 is weak on paraphrases |
-| 5 | Local model: Ollama + Qwen3-8B (Q4_K_M), one schema-valid JSON call, VRAM and latency noted | **Not in this repo and not verified here.** Isam to fill in from the GPU box | `LLM` interface and a fake model for tests; the Ollama checklist in the plan |
+| 5 | Local model: Ollama + Qwen3-8B (Q4_K_M), one schema-valid JSON call, VRAM and latency noted | **The call is in the repo (`POST /model/test`, 2026-10-16) but tested with fakes only; not yet run against a real model.** Isam to fill in from the GPU box | a real run (Mac 4B first, then the 8B on the GPU box, labelled by model tag, D12); VRAM and latency figures; the Ollama checklist in the plan |
 | 6 | `pytest` run live | **Ready** (247 pass) | save the log |
 | 7 | Status section | **This file** | Isam to review |
 
