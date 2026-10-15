@@ -24,7 +24,8 @@ from typing import Callable, Sequence
 
 from bs4 import BeautifulSoup
 
-from mizan.data.pdf_extract import extract_text
+from mizan.data.pdf_extract import extract_pages
+from mizan.data.reports import is_periodic_report
 from mizan.fetcher.base import FetchResult
 from mizan.fetcher.cache import PageCache, load_cached
 from mizan.fetcher.client import PoliteClient
@@ -50,9 +51,10 @@ class AnnouncementRow:
 
 @dataclass(frozen=True)
 class DocText:
-    status: str            # text | needs_ocr | long | not_cached | download_failed | unreadable | no_document
-    text: str = ""
+    status: str            # text | partial | long | needs_ocr | not_cached | download_failed | unreadable | no_document
+    text: str = ""         # the body ("text"/"partial") or the opening of a long document ("long")
     pages: int = 0
+    image_pages: int = 0   # pages without a text layer
 
 
 # --- parsing ------------------------------------------------------------------
@@ -115,19 +117,32 @@ class PdfCache:
         return path
 
 
-def describe_document(path: Path, max_pdf_pages: int, max_text_chars: int) -> DocText:
+MIN_BODY_CHARS = 150        # less text than this in the whole document is a signature or letterhead, not content
+EXCERPT_CHARS = 1800        # how much of the opening of a long document is kept
+
+
+def describe_document(path: Path, max_pdf_pages: int, max_text_chars: int, excerpt_chars: int = EXCERPT_CHARS) -> DocText:
+    """Classify a downloaded PDF and keep the useful text.
+
+    needs_ocr: (almost) no text layer at all; long: more than max_pdf_pages (keeps its opening);
+    partial: most pages are images but some text exists; text: a readable short document.
+    """
     try:
-        extracted = extract_text(path)
+        pages = extract_pages(path)
     except Exception:
         return DocText("unreadable")
-    if extracted.pages > max_pdf_pages:
-        return DocText("long", pages=extracted.pages)
-    if extracted.needs_ocr:
-        return DocText("needs_ocr", pages=extracted.pages)
-    text = " ".join(extracted.text.split())
-    if len(text) > max_text_chars:
-        text = text[:max_text_chars].rstrip() + " [truncated]"
-    return DocText("text", text, extracted.pages)
+    n, image_pages = len(pages), sum(len(p) < 40 for p in pages)
+    body = " ".join(p for p in pages if p)
+    if len(body) < MIN_BODY_CHARS:
+        return DocText("needs_ocr", pages=n, image_pages=image_pages)
+    if n > max_pdf_pages:
+        return DocText("long", _clip(body, excerpt_chars), n, image_pages)
+    status = "partial" if image_pages / n > 0.5 else "text"
+    return DocText(status, _clip(body, max_text_chars), n, image_pages)
+
+
+def _clip(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[:limit].rstrip() + " [truncated]"
 
 
 # --- rows -> evidence -----------------------------------------------------------
@@ -152,8 +167,17 @@ def row_to_item(row: AnnouncementRow, doc: DocText) -> EvidenceItem:
     text = f"{ticker} announcement on {row.day.isoformat()} at {row.time}: {row.title.rstrip('. ')}."
     if doc.status == "text":
         text += f" Document text: {doc.text}"
+    elif doc.status == "partial":
+        readable = doc.pages - doc.image_pages
+        text += (f" Document text (only {readable} of {doc.pages} pages have a text layer; the rest are images "
+                 f"that need OCR): {doc.text}")
     elif doc.status == "long":
-        text += f" The attached document is {doc.pages} pages long and is not included here."
+        if doc.text and not is_periodic_report(row.title):
+            text += f" The attached document is {doc.pages} pages long; its opening reads: {doc.text}"
+            if doc.image_pages / doc.pages > 0.5:
+                text += f" ({doc.image_pages} of {doc.pages} pages are images without a text layer; they need OCR.)"
+        else:
+            text += f" The attached document is {doc.pages} pages long and is not included here."
     else:
         text += " " + DOC_NOTES[doc.status]
     return EvidenceItem(id=item_id, ticker=ticker, source=SOURCE, type="announcement", date=row.day, text=text)

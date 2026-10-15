@@ -23,6 +23,12 @@ EMPTY = ('<div data-total="0"></div><table id="announcementsTable"><thead><tr><t
          '<th>NAME</th><th>TITLE</th><th></th></tr></thead><tbody></tbody></table>')
 
 
+LETTER_PAD = "\nThe board met and approved the matter described in this letter to the exchange and the shareholders."
+
+
+BODY = ("\nWe are pleased to announce the results of the company for the period.") * 6
+
+
 def make_pdf(path, pages):
     doc = pymupdf.open()
     for text in pages:
@@ -75,7 +81,7 @@ def test_unreadable_rows_are_reported_up_to_a_limit():
 # --- documents ----------------------------------------------------------------
 
 def test_short_text_pdf_is_described_with_its_text(tmp_path):
-    make_pdf(tmp_path / "a.pdf", ["Subject: First Gas from the Lundali Well.\nWe are pleased to announce."])
+    make_pdf(tmp_path / "a.pdf", ["Subject: First Gas from the Lundali Well.\nWe are pleased to announce." + LETTER_PAD])
     doc = describe_document(tmp_path / "a.pdf", max_pdf_pages=8, max_text_chars=4000)
     assert doc.status == "text" and doc.pages == 1
     assert "First Gas from the Lundali Well. We are pleased" in doc.text      # whitespace collapsed
@@ -92,10 +98,29 @@ def test_scanned_pdf_is_flagged_not_returned_empty(tmp_path):
     assert describe_document(tmp_path / "scan.pdf", 8, 4000).status == "needs_ocr"
 
 
-def test_long_document_is_not_inlined(tmp_path):
-    make_pdf(tmp_path / "long.pdf", [f"page {i} " * 30 for i in range(10)])
-    doc = describe_document(tmp_path / "long.pdf", max_pdf_pages=8, max_text_chars=4000)
-    assert doc.status == "long" and doc.pages == 10 and doc.text == ""
+def test_long_document_keeps_its_opening(tmp_path):
+    make_pdf(tmp_path / "long.pdf", [f"page {i} text of the notice " * 20 for i in range(10)])
+    doc = describe_document(tmp_path / "long.pdf", max_pdf_pages=8, max_text_chars=4000, excerpt_chars=300)
+    assert doc.status == "long" and doc.pages == 10 and doc.image_pages == 0
+    assert doc.text.startswith("page 0 text") and doc.text.endswith("[truncated]") and len(doc.text) < 330
+
+
+def test_signature_only_text_layer_counts_as_scanned(tmp_path):
+    make_pdf(tmp_path / "sig.pdf", ["Yours truly, For: LUCKY CEMENT LIMITED Ali Shahab Company Secretary"])
+    doc = describe_document(tmp_path / "sig.pdf", 8, 4000)
+    assert doc.status == "needs_ocr" and doc.pages == 1
+
+
+def test_mostly_image_document_is_partial(tmp_path):
+    make_pdf(tmp_path / "mixed.pdf", ["Cover letter." + BODY, "", ""])
+    doc = describe_document(tmp_path / "mixed.pdf", 8, 4000)
+    assert doc.status == "partial" and doc.pages == 3 and doc.image_pages == 2 and doc.text.startswith("Cover letter")
+
+
+def test_long_document_that_is_mostly_images_is_still_long_with_a_note(tmp_path):
+    make_pdf(tmp_path / "scan.pdf", ["Cover letter." + BODY] + [""] * 9)
+    doc = describe_document(tmp_path / "scan.pdf", 8, 4000)
+    assert doc.status == "long" and doc.pages == 10 and doc.image_pages == 9
 
 
 def test_corrupt_pdf_is_reported_unreadable(tmp_path):
@@ -123,6 +148,9 @@ def test_item_has_stable_id_ticker_date_and_body():
 
 @pytest.mark.parametrize("doc, expected", [
     (DocText("needs_ocr", pages=1), "needs OCR"),
+    (DocText("partial", "Cover letter.", pages=3, image_pages=2), "only 1 of 3 pages have a text layer"),
+    (DocText("long", "The notice opens like this.", pages=18), "its opening reads: The notice opens like this."),
+    (DocText("long", "Cover letter.", pages=10, image_pages=9), "9 of 10 pages are images"),
     (DocText("long", pages=229), "229 pages long"),
     (DocText("not_cached"), "was not downloaded"),
     (DocText("download_failed"), "could not be downloaded"),
@@ -187,10 +215,10 @@ def make_fetcher(tmp_path, live=True, dps=None, client=None, **kwargs):
 
 
 def good_pdfs(tmp_path):
-    return {"900001": pdf_bytes(tmp_path, ["Material information: first gas from the new well."]),
-            "900002": pdf_bytes(tmp_path, ["Financial results for the year."]),
+    return {"900001": pdf_bytes(tmp_path, ["Material information: first gas from the new well." + LETTER_PAD]),
+            "900002": pdf_bytes(tmp_path, ["Financial results for the year." + LETTER_PAD]),
             "900004": pdf_bytes(tmp_path, [""]),             # image-only
-            "900010": pdf_bytes(tmp_path, ["Mr X appointed as director."])}
+            "900010": pdf_bytes(tmp_path, ["Mr X appointed as director." + LETTER_PAD])}
 
 
 def test_fetch_builds_items_for_each_row_with_document_text(tmp_path):
@@ -332,3 +360,9 @@ def test_without_a_handler_long_documents_only_keep_their_title(tmp_path):
     pdfs["900002"] = pdf_bytes(tmp_path, [f"page {i} text " * 20 for i in range(10)])
     result = make_fetcher(tmp_path / "c", client=FakeClient(pdfs)).fetch(["ALPH"])
     assert not any(i.type == "report_section" for i in result.items)
+
+
+def test_long_periodic_report_does_not_inline_its_opening():
+    row = AnnouncementRow(date(2026, 9, 25), "2:57 PM", "ALPH", "Alpha", "Transmission of Annual Report for the Year", "900003")
+    text = row_to_item(row, DocText("long", "Cover page text.", pages=229)).text
+    assert "229 pages long and is not included here" in text and "Cover page text" not in text
