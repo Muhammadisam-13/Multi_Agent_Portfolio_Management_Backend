@@ -9,7 +9,9 @@ Nothing here is marked done unless it exists in the repo and is tested. Scope: `
 tests, `MIZAN_LIVE_OLLAMA=1`). Nothing below is marked done unless it exists on `main` and those tests cover it.
 
 ### What was demoed at the mid (2026-10-16)
-- **[Isam to fill in: what was actually shown, and the supervisor's feedback.]** Not recorded by the assistant; it was not told.
+- **Shown (Isam, 2026-10-20):** everything prepared, including the report and the UI flow: the Flutter app connected to the
+  backend API and showed a live evidence bundle (pick a ticker and date, see the evidence; move the date earlier and newer items disappear).
+- Supervisor and evaluator feedback: **[Isam to fill in]**.
 - What was prepared: the presentation and report source (`Mizan_FYP1_Mid_Presentation.pptx`, `Mizan_FYP1_Mid_Report_LaTeX_Source.zip`,
   commit `05e691f`); the terminal demo `scripts/demo.ps1` (14 steps, `c99f34f`); the API with `/docs`; a local page of real outputs
   for screenshots (`demo-outputs/mizan-retrieval-outputs.html`, outside the repo, not committed: it quotes PSX documents).
@@ -26,7 +28,8 @@ tests, `MIZAN_LIVE_OLLAMA=1`). Nothing below is marked done unless it exists on 
 - **`POST /ask` on the real model:** the first real run (2026-10-16, `qwen3:4b-instruct` on the Mac, context 4096) failed (reply cut off at
   512 tokens). The fix (`9c63c87`, `3bde136`, `4f3df48`, `16cad2d`) is tested with fakes only and **not yet re-run on the real model**.
 - **`POST /model/test`** has not been run against the real model. The target model `qwen3:8b` on the GPU box is unverified (D12).
-- **Flutter connection:** state not known to the assistant. **[Isam to confirm whether the app was connected for the mid.]**
+- **Flutter connection:** done for the mid (Isam, 2026-10-20: the app showed a live bundle from the API). The Flutter code is not in
+  this repo, so its tests are not covered by the run above. Owners of `api/` and the Flutter app: **[Isam to confirm]**.
 - **`README.md`** (set-up and run guide, `5d692b2`) is only on branch `retrieval/fetcher-and-search`, **not on `main`**.
 - Open [confirm] items in the plan: the API owner; agreement on the `/ask` contract with Isam and the Flutter side.
 - Gold-set labels (`eval/`) were written by the assistant and are not reviewed. The AI-usage log's "reviewed / changed" column is blank.
