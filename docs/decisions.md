@@ -220,3 +220,27 @@ confirm or correct those lines before the report.
   `tests/test_api_ask.py` (marker items dated after `as_of` or of another ticker never appear in any message sent to the fake model,
   and citing them is rejected).
 - Tested with `FakeLLM` only; not yet run on the real model. Agreement with Isam: [to confirm].
+
+## D14. No AI co-author trailer in commits; earlier trailers removed (Isam, 2026-10-15)
+- **Decision:** commit messages credit only team members. The Claude co-author trailer was removed from the 18 earlier commits by rewriting
+  commit messages only (file contents, authors and dates verified unchanged) and force-pushing `main` and `retrieval/fetcher-and-search`
+  with a lease on 2026-10-15. AI use is disclosed in `docs/ai_usage_log.md` instead. Also in CLAUDE.md (working agreements).
+
+## D15. Normalized BM25 is the default search (2026-10-15)
+- **Decision:** the context selector and the demo use BM25 over stemmed words with finance abbreviations (`mizan/retrieval/lexical.py`);
+  plain BM25 stays selectable (`--retriever bm25`).
+- **Reasoning:** it scored higher on both gold sets on snapshot `demo-v3` (recall@5 / MRR: original 0.83/0.85 -> 0.87/0.86; held-out
+  0.69/0.71 -> 0.78/0.74). Caveats: small sets, one held-out query got worse, and part of the abbreviation list was motivated by
+  held-out failures. Embeddings are not built (decision open).
+
+## D16. The data is a one-time pull; no refresh during a decision (Isam, 2026-10-15)
+- **Decision:** the pipeline is run when someone builds a snapshot; nothing refreshes automatically and a decision does not trigger a refresh.
+  Isam: "the current pipeline is fine". The incremental-refresh design discussed on 2026-10-15 was not built.
+- **Consequence:** the data stops at prices 2026-10-13 and announcements 2026-10-15 until a new snapshot is built with `--live`.
+
+## D17. Demo data is shared out of band as a zip, never through git (Isam, 2026-10-16)
+- **Decision:** teammates get `mizan-demo-data.zip` (snapshot `demo-v3/items.jsonl` and `data/cache/prices/`, about 380 KB), kept outside
+  the repo and checked against the committed manifest hash. It contains PSX data: team only, not public (D4).
+
+## D18. ENGRO dropped and OCR dropped (Isam, 2026-10-15)
+- Recorded as updates to D5 and as D9; listed here so the decision index is complete.

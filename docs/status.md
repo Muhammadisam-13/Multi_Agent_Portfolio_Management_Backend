@@ -1,7 +1,47 @@
-# Status (as of 2026-10-15, the day before the FYP-1 mid on 2026-10-16)
+# Status (updated 2026-10-20, after the FYP-1 mid; older sections from 2026-10-15 below)
 
 Written by Claude Code from the repository and test runs on 2026-10-15; Isam to correct anything that is out of date.
 Nothing here is marked done unless it exists in the repo and is tested. Scope: `docs/mid-and-next-plan.md` (decision D6).
+
+## After the mid (written 2026-10-20 on branch `docs/post-mid-status`, from `origin/main` at `ac2b73f`)
+
+**Verified 2026-10-20:** on `main`'s code, `pytest -q` gives **448 passed, 2 skipped** (the skipped ones are the opt-in live-model
+tests, `MIZAN_LIVE_OLLAMA=1`). Nothing below is marked done unless it exists on `main` and those tests cover it.
+
+### What was demoed at the mid (2026-10-16)
+- **[Isam to fill in: what was actually shown, and the supervisor's feedback.]** Not recorded by the assistant; it was not told.
+- What was prepared: the presentation and report source (`Mizan_FYP1_Mid_Presentation.pptx`, `Mizan_FYP1_Mid_Report_LaTeX_Source.zip`,
+  commit `05e691f`); the terminal demo `scripts/demo.ps1` (14 steps, `c99f34f`); the API with `/docs`; a local page of real outputs
+  for screenshots (`demo-outputs/mizan-retrieval-outputs.html`, outside the repo, not committed: it quotes PSX documents).
+
+### Working and tested (on `main`)
+| Part | Where | Key commits |
+|---|---|---|
+| Retrieval layer: fetchers (results table, announcements with the page token, prices via psxdata), PDF text, report and slide passages, snapshots with manifests, as-of bundles (no look-ahead, ticker isolation), plain and normalized BM25, context selector, gold sets | `mizan/` | merged in `0730a38`; snapshot `demo-v3` manifest `b51fd33`; normalized search `eec8a34` |
+| API endpoints 1-6 (`/health`, `/tickers`, `/tickers/{t}/bundle`, `/evidence/{id}`, `/tickers/{t}/prices`, `/model/health`) | `api/` | `9c24520`, `5166938` |
+| `OllamaClient.chat` with JSON-schema output, endpoint 7 `POST /model/test` | `mizan/llm/`, `api/` | `fab0bbf`, `6cc57fc` (Shahzeb) |
+| `ask()` and endpoint 8 `POST /ask` (grounded answer, rejected ids, 2500-token budget, D13), CORS for localhost | `mizan/llm/ask.py`, `api/` | `363c40e`, `bee05de`, `a3d6a3f`, merged as PR #1 `ac2b73f` (Shahzeb) |
+
+### Half-done
+- **`POST /ask` on the real model:** the first real run (2026-10-16, `qwen3:4b-instruct` on the Mac, context 4096) failed (reply cut off at
+  512 tokens). The fix (`9c63c87`, `3bde136`, `4f3df48`, `16cad2d`) is tested with fakes only and **not yet re-run on the real model**.
+- **`POST /model/test`** has not been run against the real model. The target model `qwen3:8b` on the GPU box is unverified (D12).
+- **Flutter connection:** state not known to the assistant. **[Isam to confirm whether the app was connected for the mid.]**
+- **`README.md`** (set-up and run guide, `5d692b2`) is only on branch `retrieval/fetcher-and-search`, **not on `main`**.
+- Open [confirm] items in the plan: the API owner; agreement on the `/ask` contract with Isam and the Flutter side.
+- Gold-set labels (`eval/`) were written by the assistant and are not reviewed. The AI-usage log's "reviewed / changed" column is blank.
+
+### Known problems and limits
+- 45 of 131 announcements are image-only and carry only their title (no OCR, D9); 22 more have no document on PSX.
+- No MACRO items: SBP is deferred (D10). Search matches words, not meaning (held-out recall@5 0.78 with normalized BM25).
+- Bundles are 8.5k-23k tokens (estimate); `/ask` works under a 2500-token budget. A full-length retry may still exceed a 4096 context (D13).
+- The data is a one-time pull (prices to 2026-10-13, announcements to 2026-10-15); nothing refreshes (D16). It is not in git; it is shared
+  as a zip (D17). Live PSX calls rely on PSX's request token, and PSX's Terms of Use restrict automated retrieval (D1, D3, D7).
+- Windows Application Control on the development laptop blocks some native libraries (it stopped the OCR attempt).
+- Full test runs occasionally take 1-2 minutes instead of seconds on the laptop (seen 2026-10-15/16); the tests themselves are fast.
+
+### Note on older sections
+The sections below were written on 2026-10-15. The "Note on the working copy" bullet is resolved: those doc edits were committed in `0e56e69`.
 
 ## Scope change (evening of 2026-10-15; decisions D10 and D11)
 - The Flutter UI must be connected to the backend for the mid, so a **FastAPI backend (`api/`) is now required**. SBP/macro is **deferred until
